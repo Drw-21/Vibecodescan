@@ -1,0 +1,6 @@
+node_modules
+package-lock.json
+supabase/.temp
+supabase/migrations
+supabase/seed.sql
+tests/db/*.sql

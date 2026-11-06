@@ -1,0 +1,29 @@
+# Supabase CLI configuration for local development (`supabase start`).
+# Production settings are managed in the Supabase dashboard.
+project_id = "scanner"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+max_rows = 100
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Magic links only: no passwords to leak or stuff.
+enable_confirmations = true

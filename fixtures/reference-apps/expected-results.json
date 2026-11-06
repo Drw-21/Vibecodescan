@@ -1,0 +1,190 @@
+{
+  "$comment": "Expected scan results for the reference app suite. Written BEFORE the checks exist (spec: Validation step 1). Every flawed app is the clean app with exactly the listed flaw(s) introduced, so every check not listed under `fails` or `notRun` must report `pass`. Changing an expectation needs a pull request that says why.",
+  "version": 1,
+  "checks": [
+    "secret-in-bundle",
+    "supabase-public-tables",
+    "firebase-open-rules",
+    "exposed-files",
+    "source-maps",
+    "security-headers",
+    "https",
+    "cookie-flags",
+    "platform-detect"
+  ],
+  "deepChecks": ["supabase-public-tables", "firebase-open-rules"],
+  "apps": [
+    {
+      "id": "ref-clean",
+      "description": "Fully fixed app: no secrets in bundles, RLS on, all headers, HTTPS redirect, secure cookies, no exposed files or maps.",
+      "platform": "lovable",
+      "verified": true,
+      "fails": [],
+      "notRun": [],
+      "expectedScore": 100,
+      "expectedGrade": "A"
+    },
+    {
+      "id": "ref-exposed-key",
+      "description": "An OpenAI secret key (sk-...) is shipped in a JavaScript bundle.",
+      "platform": "lovable",
+      "verified": false,
+      "fails": [{ "checkId": "secret-in-bundle", "severity": "critical", "detail": "OpenAI key" }],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 60,
+      "expectedGrade": "D"
+    },
+    {
+      "id": "ref-public-keys-only",
+      "description": "False-positive trap: bundle holds only public-by-design keys (Supabase anon key, Stripe pk_live_, Firebase apiKey).",
+      "platform": "bolt",
+      "verified": false,
+      "fails": [],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 100,
+      "expectedGrade": "A"
+    },
+    {
+      "id": "ref-open-table",
+      "description": "Supabase table `profiles` has RLS off and is readable with the anon key while logged out.",
+      "platform": "lovable",
+      "verified": true,
+      "fails": [
+        { "checkId": "supabase-public-tables", "severity": "critical", "detail": "profiles" }
+      ],
+      "notRun": [],
+      "expectedScore": 60,
+      "expectedGrade": "D"
+    },
+    {
+      "id": "ref-open-table-unverified",
+      "description": "Guardrail: the same open table, but the site is NOT verified, so the deep check must not run at all.",
+      "platform": "lovable",
+      "verified": false,
+      "fails": [],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 100,
+      "expectedGrade": "A"
+    },
+    {
+      "id": "ref-firebase-open",
+      "description": "Firestore rules allow reads without sign-in.",
+      "platform": "bolt",
+      "verified": true,
+      "fails": [
+        { "checkId": "firebase-open-rules", "severity": "critical", "detail": "Firestore" }
+      ],
+      "notRun": [],
+      "expectedScore": 60,
+      "expectedGrade": "D"
+    },
+    {
+      "id": "ref-exposed-env",
+      "description": "A real-looking /.env file (KEY=value lines) is served.",
+      "platform": "replit",
+      "verified": false,
+      "fails": [{ "checkId": "exposed-files", "severity": "critical", "detail": "/.env" }],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 60,
+      "expectedGrade": "D"
+    },
+    {
+      "id": "ref-catch-all-spa",
+      "description": "False-positive trap: every path, including /.env and /.git/config, returns the app's index.html with status 200.",
+      "platform": "lovable",
+      "verified": false,
+      "fails": [],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 100,
+      "expectedGrade": "A"
+    },
+    {
+      "id": "ref-source-maps",
+      "description": "Production .map files are published next to the bundles.",
+      "platform": "v0",
+      "verified": false,
+      "fails": [{ "checkId": "source-maps", "severity": "medium" }],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 92,
+      "expectedGrade": "A"
+    },
+    {
+      "id": "ref-no-headers",
+      "description": "None of the five security headers are sent.",
+      "platform": "netlify",
+      "verified": false,
+      "fails": [
+        {
+          "checkId": "security-headers",
+          "severity": "medium",
+          "detail": "Content-Security-Policy"
+        },
+        {
+          "checkId": "security-headers",
+          "severity": "medium",
+          "detail": "Strict-Transport-Security"
+        },
+        {
+          "checkId": "security-headers",
+          "severity": "low",
+          "detail": "X-Frame-Options / frame-ancestors"
+        },
+        { "checkId": "security-headers", "severity": "low", "detail": "X-Content-Type-Options" },
+        { "checkId": "security-headers", "severity": "low", "detail": "Referrer-Policy" }
+      ],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 75,
+      "expectedGrade": "B"
+    },
+    {
+      "id": "ref-no-https-redirect",
+      "description": "http:// serves the page instead of redirecting to https://.",
+      "platform": "unknown",
+      "verified": false,
+      "fails": [{ "checkId": "https", "severity": "high", "detail": "no redirect" }],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 80,
+      "expectedGrade": "B"
+    },
+    {
+      "id": "ref-insecure-cookies",
+      "description": "A session cookie is set without Secure, HttpOnly or SameSite.",
+      "platform": "replit",
+      "verified": false,
+      "fails": [{ "checkId": "cookie-flags", "severity": "medium", "detail": "session" }],
+      "notRun": ["supabase-public-tables", "firebase-open-rules"],
+      "expectedScore": 92,
+      "expectedGrade": "A"
+    },
+    {
+      "id": "ref-insecure-lovable",
+      "description": "The combined insecure test app from the spec: exposed key, open table, no headers.",
+      "platform": "lovable",
+      "verified": true,
+      "fails": [
+        { "checkId": "secret-in-bundle", "severity": "critical", "detail": "OpenAI key" },
+        { "checkId": "supabase-public-tables", "severity": "critical", "detail": "profiles" },
+        {
+          "checkId": "security-headers",
+          "severity": "medium",
+          "detail": "Content-Security-Policy"
+        },
+        {
+          "checkId": "security-headers",
+          "severity": "medium",
+          "detail": "Strict-Transport-Security"
+        },
+        {
+          "checkId": "security-headers",
+          "severity": "low",
+          "detail": "X-Frame-Options / frame-ancestors"
+        },
+        { "checkId": "security-headers", "severity": "low", "detail": "X-Content-Type-Options" },
+        { "checkId": "security-headers", "severity": "low", "detail": "Referrer-Policy" }
+      ],
+      "notRun": [],
+      "expectedScore": 0,
+      "expectedGrade": "F"
+    }
+  ]
+}
