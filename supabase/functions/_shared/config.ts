@@ -70,3 +70,23 @@ export const GRADE_THRESHOLDS = [
   { grade: 'C', min: 60 },
   { grade: 'D', min: 40 },
 ] as const;
+
+/** Abuse limits (spec: "Abuse limits"). */
+export const LIMITS = {
+  /** Free scans per day, per account AND per IP (whichever is reached first), reset at midnight UTC. */
+  freeScansPerDay: 3,
+  /** The same host is scanned at most once in this window, whoever asks. */
+  hostCooldownSeconds: 10 * 60,
+  /** Largest request body create-scan accepts. */
+  maxBodyBytes: 8 * 1024,
+} as const;
+
+/** The whole scan (collect + checks) must finish well inside the 60-second budget. */
+export const SCAN = {
+  maxDurationMs: 55_000,
+} as const;
+
+export const TURNSTILE = {
+  verifyUrl: 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+  timeoutMs: 5_000,
+} as const;

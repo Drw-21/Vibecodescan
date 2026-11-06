@@ -4,7 +4,17 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['node_modules/', 'dist/', 'coverage/', 'supabase/.temp/'] },
+  {
+    ignores: [
+      'node_modules/',
+      'dist/',
+      'coverage/',
+      'supabase/.temp/',
+      // Deno-only entry points: type-checked with `deno check` in CI instead.
+      'supabase/functions/*/index.ts',
+      'supabase/functions/_shared/deno.ts',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {

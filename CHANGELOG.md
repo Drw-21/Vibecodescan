@@ -2,7 +2,23 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
-## 0.3.0 — Milestone 3: Passive checks (unreleased)
+## 0.4.0 — Milestone 4: Scan functions (unreleased)
+
+- `create-scan`: Zod-validated input, URL normalisation, Turnstile for anonymous visitors,
+  CORS limited to our site, rate limits (3 free scans/day per account and per IP, one scan per
+  host per 10 minutes), Free summary returned once to anonymous visitors, background scans for
+  signed-in users.
+- `run-scan`: service-role-only endpoint; shared `runScan` step claims a scan once, runs the
+  engine with a 55-second limit, saves findings and grade together or fails with a code.
+- Migration `20261106000100_scan_functions.sql`: `create_scan_with_limits`, `claim_scan`,
+  `complete_scan`, `fail_scan` (service role only) and the hashed-IP column.
+- Production DNS resolver (A + AAAA) and Deno wiring; `zod` and `@supabase/supabase-js` pinned
+  in `package.json` and `supabase/functions/deno.json`.
+- Tests: SQL functions on Postgres, Supabase adapter against a fake server, handlers and
+  `runScan` with an in-memory store, and an end-to-end test from URL to findings rows.
+- Launch blockers 2 and 3 closed; decisions in docs/decisions/0006.
+
+## 0.3.0 — Milestone 3: Passive checks
 
 - Seven passive checks, one file each in `scanner/checks/`: `secret-in-bundle`, `exposed-files`,
   `source-maps`, `security-headers`, `https`, `cookie-flags`, `platform-detect`; all `live`.

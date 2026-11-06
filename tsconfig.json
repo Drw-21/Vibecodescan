@@ -23,5 +23,6 @@
     "fixtures/**/*.ts",
     "vitest.config.ts",
     "eslint.config.js"
-  ]
+  ],
+  "exclude": ["supabase/functions/*/index.ts", "supabase/functions/_shared/deno.ts"]
 }
