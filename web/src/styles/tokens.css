@@ -1,0 +1,86 @@
+/*
+ * Design tokens (spec: "Frontend: Apple design principles").
+ * Neutral greys, one accent (system blue). Severity colours are used ONLY for severity,
+ * always next to an icon and a word. Every text/background pair meets WCAG AA
+ * (tested in web/src/__tests__/tokens.test.ts).
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces and text */
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --text: #1d1d1f;
+  --text-secondary: #5e5e63;
+  --separator: #d2d2d7;
+  /* Borders of fields and outlined buttons: at least 3:1 against the page (WCAG 1.4.11) */
+  --field-border: #8a8a8e;
+  --accent: #0066cc;
+  --accent-text: #ffffff;
+  --focus-ring: #0066cc;
+
+  /* Severity: ink = text/icon colour on --surface, fill = soft badge background */
+  --critical: #c1000f;
+  --critical-fill: #fde8e9;
+  --high: #a33d00;
+  --high-fill: #fdebdc;
+  --medium: #7a5600;
+  --medium-fill: #fdf3cf;
+  --low: #5e5e63;
+  --low-fill: #ececf0;
+  --pass: #1b7a35;
+
+  /* Type scale: 34 / 28 / 22 / 17 (body) / 15 / 13 */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto, sans-serif;
+  --text-34: 2.125rem;
+  --text-28: 1.75rem;
+  --text-22: 1.375rem;
+  --text-17: 1.0625rem;
+  --text-15: 0.9375rem;
+  --text-13: 0.8125rem;
+
+  /* Shape and depth */
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.06);
+
+  /* Motion: short and purposeful */
+  --duration: 250ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --surface-raised: #2c2c2e;
+    --text: #f5f5f7;
+    --text-secondary: #a1a1a6;
+    --separator: #38383a;
+    --field-border: #7c7c80;
+    --accent: #2997ff;
+    --accent-text: #000000;
+    --focus-ring: #2997ff;
+
+    --critical: #ff6961;
+    --critical-fill: #3b1715;
+    --high: #ffa94d;
+    --high-fill: #3a2410;
+    --medium: #ffd60a;
+    --medium-fill: #352d07;
+    --low: #a1a1a6;
+    --low-fill: #2c2c2e;
+    --pass: #4cd964;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration: 0ms;
+  }
+}

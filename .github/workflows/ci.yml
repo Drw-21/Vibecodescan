@@ -35,6 +35,22 @@ jobs:
       - name: npm audit (fail on high or critical)
         run: npm audit --audit-level=high
 
+  web:
+    name: Website build and browser test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install the browser for the pinned Playwright version
+        run: npx playwright install --with-deps chromium
+      - name: Free scan end to end on phone and desktop, light and dark
+        run: npm run e2e
+
   database:
     name: RLS tests
     runs-on: ubuntu-latest
