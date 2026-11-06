@@ -1,12 +1,12 @@
-// Keeps the written reference-suite expectations internally consistent with the
-// spec's scoring rules, so a typo in an expected grade is caught now rather than
-// when score.ts (milestone 2) is tested against this same file.
+// Keeps the written reference-suite expectations internally consistent: known checks only,
+// no deep check expected on an unverified site, and every expected grade is what the real
+// scoring code produces.
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-
-type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+import { score } from '../../supabase/functions/_shared/scanner/score.ts';
+import type { Severity } from '../../supabase/functions/_shared/scanner/types.ts';
 
 interface ExpectedApp {
   id: string;
@@ -21,16 +21,6 @@ interface Suite {
   checks: string[];
   deepChecks: string[];
   apps: ExpectedApp[];
-}
-
-// Spec: "Scoring and fix prompts". Mirrors the values that will live in config.ts.
-const POINTS: Record<Severity, number> = { critical: 40, high: 20, medium: 8, low: 3, info: 0 };
-
-function grade(score: number, criticals: number): string {
-  if (criticals >= 2) return 'F';
-  let g = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 40 ? 'D' : 'F';
-  if (criticals === 1 && 'ABC'.includes(g)) g = 'D';
-  return g;
 }
 
 const suite = JSON.parse(
@@ -67,12 +57,19 @@ describe('reference suite expected results', () => {
         }
       });
 
-      it('has the score and grade the spec rules produce', () => {
-        const lost = app.fails.reduce((sum, f) => sum + POINTS[f.severity], 0);
-        const score = Math.max(0, 100 - lost);
-        const criticals = app.fails.filter((f) => f.severity === 'critical').length;
-        expect(app.expectedScore).toBe(score);
-        expect(app.expectedGrade).toBe(grade(score, criticals));
+      it('has the score and grade the scoring code produces', () => {
+        const result = score(
+          app.fails.map((f) => ({
+            checkId: f.checkId,
+            status: 'fail' as const,
+            severity: f.severity,
+            title: 't',
+            explanation: 'e',
+            fixKey: f.checkId,
+          })),
+        );
+        expect(app.expectedScore).toBe(result.score);
+        expect(app.expectedGrade).toBe(result.grade);
       });
     });
   }

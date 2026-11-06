@@ -74,6 +74,7 @@ npm run lint           # ESLint (type-aware)
 npm run format:check   # Prettier
 npm run typecheck      # tsc --noEmit
 npm test               # unit tests
+deno check --no-lock 'supabase/functions/**/*.ts'   # Edge Function code under Deno
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/scanner_test npm run test:db
                        # RLS tests: DROPS AND REBUILDS that database. Throwaway Postgres only.
 ```
