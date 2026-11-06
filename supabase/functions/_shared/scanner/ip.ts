@@ -29,6 +29,7 @@ const BLOCKED_V6: readonly (readonly [string, number])[] = [
   ['2001::', 23], // IETF protocol assignments, incl. Teredo 2001::/32
   ['2001:db8::', 32], // documentation
   ['2002::', 16], // 6to4 (embeds an IPv4 address; refuse rather than decode)
+  ['3fff::', 20], // documentation (RFC 9637)
 ];
 
 export function isPublicAddress(address: string): boolean {

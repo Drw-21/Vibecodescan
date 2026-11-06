@@ -5,6 +5,7 @@ import { fakeNet, type FakeRoute } from './fakes.ts';
 
 const limits = {
   maxBundles: 25,
+  maxBytesPerBundle: 2 * 1024 * 1024,
   maxTotalBytes: 5 * 1024 * 1024,
   timeoutMs: 10_000,
   bundleConcurrency: 4,
@@ -107,22 +108,30 @@ describe('collect', () => {
     expect(result.bundlesComplete).toBe(false);
   });
 
-  it('stops at the 5 MB total and marks the set incomplete', async () => {
-    const big = 'x'.repeat(1024 * 1024);
-    const routes: Record<string, FakeRoute> = { 'https://app.example.test/': page('') };
+  it('never READS more than the 5 MB total, even with parallel downloads', async () => {
+    let served = 0;
+    const counting = (): ReadableStream<Uint8Array> => {
+      const chunk = new Uint8Array(64 * 1024).fill(120);
+      return new ReadableStream({
+        pull(controller) {
+          served += chunk.byteLength;
+          controller.enqueue(chunk);
+        },
+      });
+    };
+    const routes: Record<string, FakeRoute> = {};
     let html = '';
     for (let i = 0; i < 8; i++) {
       html += `<script src="/big${String(i)}.js"></script>`;
-      routes[`https://app.example.test/big${String(i)}.js`] = { body: big };
+      routes[`https://app.example.test/big${String(i)}.js`] = { body: counting() };
     }
     routes['https://app.example.test/'] = page(html);
     const { fetch } = setup(routes);
-    const result = await collect('https://app.example.test/', {
-      fetch,
-      limits: { ...limits, bundleConcurrency: 1 },
-    });
-    const total = result.html.length + result.bundles.reduce((n, b) => n + b.body.length, 0);
-    expect(total).toBeLessThanOrEqual(limits.maxTotalBytes);
+    const result = await collect('https://app.example.test/', { fetch, limits });
+    const kept = result.html.length + result.bundles.reduce((n, b) => n + b.body.length, 0);
+    expect(kept).toBeLessThanOrEqual(limits.maxTotalBytes);
+    // A stream may buffer one chunk ahead per download, nothing more.
+    expect(served).toBeLessThanOrEqual(limits.maxTotalBytes + 8 * 2 * 64 * 1024);
     expect(result.bundlesComplete).toBe(false);
   });
 

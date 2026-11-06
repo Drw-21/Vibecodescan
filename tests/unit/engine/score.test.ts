@@ -36,6 +36,13 @@ describe('score', () => {
     });
   });
 
+  it('applies the critical rules even when weights are tuned (config)', () => {
+    const light = { critical: 1, high: 1, medium: 1, low: 1, info: 0 };
+    expect(score([f('critical'), f('critical')], light)).toMatchObject({ score: 98, grade: 'F' });
+    expect(score([f('critical')], light)).toMatchObject({ score: 99, grade: 'D' });
+    expect(score([f('high')], light)).toMatchObject({ score: 99, grade: 'A' });
+  });
+
   it('does not score incomplete checks, but marks the grade as partial', () => {
     const result = score([f('critical', 'incomplete'), f('low')]);
     expect(result).toMatchObject({ score: 97, grade: 'A', partial: true });

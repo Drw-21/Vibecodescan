@@ -15,10 +15,14 @@ All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
   live / shadow / off switches and a deep-scan kill switch in `config.ts`.
 - `score.ts`: the spec's weights and grade rules; incomplete checks make the grade partial.
 - CI typechecks Edge Function code under Deno as well as Node.
+- Independent review fixes: a DNS lookup that never answers now times out; a bad per-call byte cap
+  can no longer switch the cap off; parallel bundle downloads reserve budget so collect never reads
+  more than 5 MB; credentials are dropped on cross-origin redirects; `3fff::/20` blocked; the
+  two-criticals rule now has a test that fails without it.
 
 ### Known gaps
 
-- DNS pinning in `safeFetch` (docs/decisions/0004): launch blocker.
+- See `docs/launch-blockers.md`: DNS pinning (ADR 0004), a production resolver, and the 60-second scan limit.
 
 ## 0.1.0 — Milestone 1: Foundation
 

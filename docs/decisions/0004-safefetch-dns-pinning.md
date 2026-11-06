@@ -24,5 +24,5 @@ later when `fetch()` connects ("DNS rebinding").
   exact address that was checked (a small worker server, which the spec already allows for
   `run-scan`, using a pinned-address HTTP client), or the Edge runtime must be confirmed to
   offer address pinning. The engine code does not change; only the injected transport does.
-  Added to the launch checklist in `CHANGELOG.md` under Known gaps.
+  Tracked in `docs/launch-blockers.md`.
 - Supabase's own network egress rules are a second layer but are not relied on.

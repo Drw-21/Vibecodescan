@@ -243,6 +243,32 @@ describe('safeFetch: size and time limits', () => {
     await expectCode(pending, 'aborted');
   });
 
+  it('gives up on a DNS server that never answers', async () => {
+    const net = fakeNet({});
+    const safeFetch = createSafeFetch({
+      resolve: () => new Promise<string[]>(() => undefined),
+      transport: net.transport,
+      userAgent: UA,
+      limits: { timeoutMs: 50 },
+    });
+    await expectCode(safeFetch('https://hang.example.test/'), 'timeout');
+    expect(net.requested).toEqual([]);
+  });
+
+  it.each([Number.NaN, -1, Number.POSITIVE_INFINITY])(
+    'ignores a bad per-call cap (%s) and keeps the configured one',
+    async (maxBytes) => {
+      const { safeFetch } = setup(
+        { 'https://app.example.test/big.js': { body: endlessStream() } },
+        {},
+        { maxBytesPerResponse: 1000 },
+      );
+      const res = await safeFetch('https://app.example.test/big.js', { maxBytes });
+      expect(res).toMatchObject({ truncated: true });
+      expect(res.body.length).toBe(1000);
+    },
+  );
+
   it('wraps transport failures as network errors', async () => {
     const net = fakeNet({});
     const safeFetch = createSafeFetch({
@@ -251,6 +277,35 @@ describe('safeFetch: size and time limits', () => {
       userAgent: UA,
     });
     await expectCode(safeFetch('https://app.example.test/'), 'network');
+  });
+});
+
+describe('safeFetch: credentials never follow a redirect to another origin', () => {
+  it('drops authorization, apikey and cookie on a cross-origin redirect', async () => {
+    const { net, safeFetch } = setup({
+      'https://app.example.test/': {
+        status: 302,
+        headers: { location: 'https://other.example.test/' },
+      },
+      'https://other.example.test/': { body: 'ok' },
+    });
+    await safeFetch('https://app.example.test/', {
+      headers: { Authorization: 'Bearer x', apikey: 'k', Cookie: 'a=b', Accept: 'text/html' },
+    });
+    const sent = net.seenHeaders.get('https://other.example.test/');
+    expect(sent?.get('authorization')).toBeNull();
+    expect(sent?.get('apikey')).toBeNull();
+    expect(sent?.get('cookie')).toBeNull();
+    expect(sent?.get('accept')).toBe('text/html');
+  });
+
+  it('keeps them on a same-origin redirect', async () => {
+    const { net, safeFetch } = setup({
+      'https://app.example.test/a': { status: 302, headers: { location: '/b' } },
+      'https://app.example.test/b': { body: 'ok' },
+    });
+    await safeFetch('https://app.example.test/a', { headers: { apikey: 'k' } });
+    expect(net.seenHeaders.get('https://app.example.test/b')?.get('apikey')).toBe('k');
   });
 });
 

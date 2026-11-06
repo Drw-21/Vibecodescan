@@ -8,6 +8,8 @@ import type { Bundle, SafeFetch } from './types.ts';
 
 export interface CollectLimits {
   maxBundles: number;
+  /** Per-bundle read cap (safeFetch's per-response cap). */
+  maxBytesPerBundle: number;
   maxTotalBytes: number;
   timeoutMs: number;
   bundleConcurrency: number;
@@ -45,31 +47,42 @@ export async function collect(
 
   const worker = async (): Promise<void> => {
     for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-      if (remaining <= 0 || deadline.aborted) {
+      if (deadline.aborted) {
         complete = false;
         return;
       }
+      if (remaining <= 0) {
+        // Budget is spent for now; another download may still refund some. Leave it queued.
+        queue.unshift(next);
+        return;
+      }
+      // Reserve this bundle's share BEFORE fetching, so parallel downloads can never
+      // read more than the total budget between them; refund what was not used.
+      const reserved = Math.min(remaining, limits.maxBytesPerBundle);
+      remaining -= reserved;
+      let used = reserved;
       try {
-        const res = await fetch(next, { signal: deadline, maxBytes: remaining });
+        const res = await fetch(next, { signal: deadline, maxBytes: reserved });
         if (res.status < 200 || res.status >= 300) {
           complete = false;
+          used = 0;
           continue;
         }
         const bytes = encoder.encode(res.body);
-        // Several bundles load at once, so trim to whatever budget is left now.
         const kept =
-          bytes.byteLength > remaining
-            ? decoder.decode(bytes.subarray(0, Math.max(0, remaining)))
-            : res.body;
+          bytes.byteLength > reserved ? decoder.decode(bytes.subarray(0, reserved)) : res.body;
         if (res.truncated || kept !== res.body) complete = false;
-        remaining -= Math.min(bytes.byteLength, remaining);
+        used = Math.min(bytes.byteLength, reserved);
         if (kept.length > 0) loaded.set(next, kept);
       } catch {
         complete = false;
+      } finally {
+        remaining += reserved - used;
       }
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, limits.bundleConcurrency) }, worker));
+  if (queue.length > 0) complete = false;
 
   const bundles = candidates.flatMap((u) => {
     const body = loaded.get(u);

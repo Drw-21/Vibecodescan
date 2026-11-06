@@ -21,6 +21,7 @@ export function userAgent(botDomain: string): string {
 /** Collect phase: load the page and its bundles once. */
 export const COLLECT = {
   maxBundles: 25,
+  maxBytesPerBundle: SAFE_FETCH.maxBytesPerResponse,
   maxTotalBytes: 5 * 1024 * 1024,
   timeoutMs: 10_000,
   /** How many bundles are fetched at the same time. */

@@ -21,8 +21,11 @@ export type Transport = (
   init: { headers: Headers; signal: AbortSignal },
 ) => Promise<Response>;
 
-/** Returns every A and AAAA address for a hostname. */
-export type Resolver = (hostname: string) => Promise<string[]>;
+/** Returns every A and AAAA address for a hostname. Should stop when `signal` aborts. */
+export type Resolver = (hostname: string, signal: AbortSignal) => Promise<string[]>;
+
+/** Headers that must never follow a redirect to a different origin. */
+const CREDENTIAL_HEADERS = ['authorization', 'apikey', 'cookie', 'proxy-authorization'];
 
 export interface SafeFetchLimits {
   maxRedirects: number;
@@ -54,10 +57,12 @@ export function createSafeFetch(deps: SafeFetchDeps): SafeFetch {
   return async function safeFetch(input, init: SafeFetchInit = {}): Promise<SafeResponse> {
     const timeout = AbortSignal.timeout(limits.timeoutMs);
     const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-    const maxBytes = Math.min(
-      init.maxBytes ?? limits.maxBytesPerResponse,
-      limits.maxBytesPerResponse,
-    );
+    // A bad per-call value (NaN, negative, Infinity) falls back to the configured cap.
+    const requested = init.maxBytes;
+    const maxBytes =
+      requested !== undefined && Number.isFinite(requested) && requested >= 0
+        ? Math.min(Math.floor(requested), limits.maxBytesPerResponse)
+        : limits.maxBytesPerResponse;
     const headers = buildHeaders(init.headers, deps.userAgent);
 
     let url = parseUrl(input);
@@ -79,7 +84,11 @@ export function createSafeFetch(deps: SafeFetchDeps): SafeFetch {
             );
           }
           redirects.push(url.href);
-          url = parseUrl(location, url);
+          const next = parseUrl(location, url);
+          if (next.origin !== url.origin) {
+            for (const name of CREDENTIAL_HEADERS) headers.delete(name);
+          }
+          url = next;
           continue;
         }
 
@@ -135,7 +144,7 @@ async function assertAllowed(url: URL, resolve: Resolver, signal: AbortSignal): 
     addresses = [host];
   } else {
     try {
-      addresses = await resolve(host);
+      addresses = await abortable(resolve(host, signal), signal);
     } catch (error) {
       if (signal.aborted) throw error;
       throw new SafeFetchError('dns_failed', 'could not resolve host', { cause: error });
@@ -145,6 +154,27 @@ async function assertAllowed(url: URL, resolve: Resolver, signal: AbortSignal): 
   if (!addresses.every(isPublicAddress)) {
     throw new SafeFetchError('blocked_address', 'host resolves to a private or reserved address');
   }
+}
+
+/** Settles as soon as `signal` aborts, even if `promise` never does (e.g. a DNS server that never answers). */
+function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(signal.reason as Error);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => {
+      reject(signal.reason as Error);
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
 }
 
 /** Reads at most maxBytes of the body, then stops reading (no unbounded downloads). */

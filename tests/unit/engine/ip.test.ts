@@ -35,6 +35,7 @@ describe('isPublicAddress', () => {
     '2002:7f00:1::1', // 6to4 of 127.0.0.1
     '2001::1', // Teredo
     'fd00:ec2::254', // AWS IPv6 metadata
+    '3fff::1', // documentation (RFC 9637)
   ])('blocks %s', (ip) => {
     expect(isPublicAddress(ip)).toBe(false);
   });
