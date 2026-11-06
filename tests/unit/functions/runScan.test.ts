@@ -105,6 +105,17 @@ describe('runScan', () => {
     expect(store.scans.get(id)?.status).toBe('failed');
   });
 
+  it('a failed claim never fails a scan that another call is already running', async () => {
+    const { store, run } = setup(appSite());
+    const id = await queued(store, 'https://app.example.test/');
+    const scan = store.scans.get(id);
+    if (!scan) throw new Error('missing');
+    scan.status = 'running'; // claimed by another call
+    store.claimScan = () => Promise.reject(new Error('timeout'));
+    expect(await run(id)).toEqual({ status: 'failed', errorCode: 'internal' });
+    expect(store.scans.get(id)?.status).toBe('running');
+  });
+
   it('marks the scan failed if saving the results fails', async () => {
     const { store, run } = setup(appSite());
     store.completeScan = () => Promise.reject(new Error('constraint violated'));

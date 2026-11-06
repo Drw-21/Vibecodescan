@@ -61,10 +61,10 @@ export class MemoryStore implements ScanStore {
     return Promise.resolve(true);
   }
 
-  failScan(scanId: string, errorCode: string): Promise<boolean> {
+  failScan(scanId: string, errorCode: string, onlyIfQueued: boolean): Promise<boolean> {
     const scan = this.scans.get(scanId);
-    if (!scan || (scan.status !== 'queued' && scan.status !== 'running'))
-      return Promise.resolve(false);
+    const allowed = scan?.status === 'queued' || (scan?.status === 'running' && !onlyIfQueued);
+    if (!scan || !allowed) return Promise.resolve(false);
     Object.assign(scan, { status: 'failed', errorCode });
     return Promise.resolve(true);
   }

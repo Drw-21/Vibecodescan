@@ -101,7 +101,7 @@ describe('supabaseStore', () => {
     });
     expect(await store.claimScan('s1')).toMatchObject({ id: 's1', kind: 'passive', userId: null });
     expect(await store.completeScan('s1', [], 'A', 100)).toBe(true);
-    expect(await store.failScan('s1', 'internal')).toBe(true);
+    expect(await store.failScan('s1', 'internal', false)).toBe(true);
     expect(calls.map((c) => c.url.split('/rpc/')[1])).toEqual([
       'claim_scan',
       'complete_scan',
@@ -120,7 +120,7 @@ describe('supabaseStore', () => {
       status: 400,
       body: { code: '42501', message: 'permission denied' },
     }));
-    await expect(store.failScan('s1', 'x')).rejects.toThrow(/42501/);
+    await expect(store.failScan('s1', 'x', false)).rejects.toThrow(/42501/);
   });
 });
 

@@ -21,6 +21,10 @@ export function clientIp(req: Request, header: string = LIMITS.trustedIpHeader):
 export function rateLimitKey(ip: string): string {
   const v6 = parseIPv6(ip);
   if (!v6) return ip;
+  // An IPv4 address written as IPv6 (::ffff:a.b.c.d) is that IPv4 visitor.
+  if (v6.slice(0, 10).every((b) => b === 0) && v6[10] === 0xff && v6[11] === 0xff) {
+    return v6.slice(12).join('.');
+  }
   const groups: string[] = [];
   for (let i = 0; i < 8; i += 2) groups.push((((v6[i] ?? 0) << 8) | (v6[i + 1] ?? 0)).toString(16));
   return `${groups.join(':')}::/64`;

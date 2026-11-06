@@ -50,7 +50,10 @@ export interface ScanStore {
     grade: string,
     score: number,
   ): Promise<boolean>;
-  failScan(scanId: string, errorCode: string): Promise<boolean>;
+  /**
+   * onlyIfQueued: true when this call never claimed the scan (it may be running elsewhere).
+   */
+  failScan(scanId: string, errorCode: string, onlyIfQueued: boolean): Promise<boolean>;
 }
 
 /** Rows as the SQL functions return them. */

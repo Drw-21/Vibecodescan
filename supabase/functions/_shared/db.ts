@@ -72,8 +72,12 @@ export function supabaseStore(client: ServiceClient): ScanStore {
       });
       return data === true;
     },
-    async failScan(scanId, errorCode) {
-      const data = await call(client, 'fail_scan', { p_scan_id: scanId, p_error_code: errorCode });
+    async failScan(scanId, errorCode, onlyIfQueued) {
+      const data = await call(client, 'fail_scan', {
+        p_scan_id: scanId,
+        p_error_code: errorCode,
+        p_only_queued: onlyIfQueued,
+      });
       return data === true;
     },
   };

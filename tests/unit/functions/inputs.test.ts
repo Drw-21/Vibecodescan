@@ -57,6 +57,7 @@ describe('clientIp and hashIp', () => {
     expect(rateLimitKey('2001:db8:aaaa:bbbb::1')).toBe('2001:db8:aaaa:bbbb::/64');
     expect(rateLimitKey('2001:db8:aaaa:bbbb:ffff::9')).toBe('2001:db8:aaaa:bbbb::/64');
     expect(rateLimitKey('203.0.113.7')).toBe('203.0.113.7');
+    expect(rateLimitKey('::ffff:203.0.113.7')).toBe('203.0.113.7');
   });
 
   it('hashes with a secret: 64 hex characters, stable, and different per secret', async () => {

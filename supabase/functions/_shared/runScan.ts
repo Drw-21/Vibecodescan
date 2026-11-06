@@ -38,12 +38,14 @@ export async function runScan(scanId: string, deps: RunScanDeps): Promise<RunSca
       signal: init.signal ? AbortSignal.any([init.signal, stop.signal]) : stop.signal,
     });
 
+  let claimed = false;
   try {
     const scan = await store.claimScan(scanId);
     if (!scan) {
       log.info('scan not claimable (already run or unknown)', { scan_id: scanId });
       return { status: 'skipped' };
     }
+    claimed = true;
     log.info('scan started', { scan_id: scanId, kind: scan.kind });
 
     const { findings, shadow } = await withDeadline(
@@ -85,8 +87,9 @@ export async function runScan(scanId: string, deps: RunScanDeps): Promise<RunSca
       error_code: errorCode,
       duration_ms: Date.now() - started,
     });
-    // Works whether the scan is still queued (the claim failed) or running.
-    await store.failScan(scanId, errorCode).catch(() => {
+    // If this call never claimed the scan, another call may be running it: only a scan
+    // that is still queued may be failed then.
+    await store.failScan(scanId, errorCode, !claimed).catch(() => {
       log.error('could not mark scan failed', { scan_id: scanId });
     });
     return { status: 'failed', errorCode };

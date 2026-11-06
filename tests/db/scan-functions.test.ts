@@ -131,7 +131,7 @@ describe('create_scan_with_limits', () => {
         for (const sql of [
           `select public.claim_scan(gen_random_uuid())`,
           `select public.complete_scan(gen_random_uuid(), '[]'::jsonb, 'A', 100)`,
-          `select public.fail_scan(gen_random_uuid(), 'x')`,
+          `select public.fail_scan(gen_random_uuid(), 'x', false)`,
         ]) {
           await expect(tx.as(actor, sql)).rejects.toMatchObject({ code: '42501' });
         }
@@ -229,12 +229,29 @@ describe('scan lifecycle', () => {
       expect(r.rows[0]?.ok).toBe(false);
     }));
 
+  it('with only-queued set, leaves a running scan alone', () =>
+    inRollback(client, async (tx) => {
+      const { scan_id } = await create(tx, {});
+      await tx.as(service, 'select * from public.claim_scan($1)', [scan_id]);
+      const r = await tx.as<{ ok: boolean }>(
+        service,
+        `select public.fail_scan($1, 'internal', true) as ok`,
+        [scan_id],
+      );
+      expect(r.rows[0]?.ok).toBe(false);
+      const [scan] = await tx.admin<{ status: string }>(
+        'select status from public.scans where id = $1',
+        [scan_id],
+      );
+      expect(scan?.status).toBe('running');
+    }));
+
   it('fails a scan with an error code, and never a finished one', () =>
     inRollback(client, async (tx) => {
       const { scan_id } = await create(tx, {});
       const failed = await tx.as<{ ok: boolean }>(
         service,
-        `select public.fail_scan($1, 'fetch_timeout') as ok`,
+        `select public.fail_scan($1, 'fetch_timeout', false) as ok`,
         [scan_id],
       );
       expect(failed.rows[0]?.ok).toBe(true);
@@ -245,7 +262,7 @@ describe('scan lifecycle', () => {
       expect(scan).toEqual({ status: 'failed', error_code: 'fetch_timeout' });
       const again = await tx.as<{ ok: boolean }>(
         service,
-        `select public.fail_scan($1, 'other') as ok`,
+        `select public.fail_scan($1, 'other', false) as ok`,
         [scan_id],
       );
       expect(again.rows[0]?.ok).toBe(false);

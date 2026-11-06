@@ -114,8 +114,10 @@ begin
 end;
 $$;
 
--- Marks a queued or running scan as failed with a short error code.
-create function public.fail_scan(p_scan_id uuid, p_error_code text)
+-- Marks a scan as failed with a short error code.
+-- p_only_queued = true is used when the claim itself failed: then the scan may be running in
+-- another call, and that call's work must not be thrown away.
+create function public.fail_scan(p_scan_id uuid, p_error_code text, p_only_queued boolean)
 returns boolean
 language plpgsql
 set search_path = ''
@@ -123,7 +125,8 @@ as $$
 begin
   update public.scans
   set status = 'failed', error_code = p_error_code, finished_at = now()
-  where id = p_scan_id and status in ('queued', 'running');
+  where id = p_scan_id
+    and (status = 'queued' or (status = 'running' and not p_only_queued));
   return found;
 end;
 $$;
@@ -132,10 +135,10 @@ revoke all on function public.create_scan_with_limits(text, text, uuid, uuid, te
   from public, anon, authenticated;
 revoke all on function public.claim_scan(uuid) from public, anon, authenticated;
 revoke all on function public.complete_scan(uuid, jsonb, text, integer) from public, anon, authenticated;
-revoke all on function public.fail_scan(uuid, text) from public, anon, authenticated;
+revoke all on function public.fail_scan(uuid, text, boolean) from public, anon, authenticated;
 
 grant execute on function public.create_scan_with_limits(text, text, uuid, uuid, text, text, integer, integer)
   to service_role;
 grant execute on function public.claim_scan(uuid) to service_role;
 grant execute on function public.complete_scan(uuid, jsonb, text, integer) to service_role;
-grant execute on function public.fail_scan(uuid, text) to service_role;
+grant execute on function public.fail_scan(uuid, text, boolean) to service_role;

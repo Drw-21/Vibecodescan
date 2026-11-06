@@ -42,10 +42,11 @@ export function pgStore(client: pg.Client): ScanStore {
       );
       return rows[0]?.ok === true;
     },
-    async failScan(scanId, errorCode) {
-      const rows = await asService<{ ok: boolean }>('select public.fail_scan($1, $2) as ok', [
+    async failScan(scanId, errorCode, onlyIfQueued) {
+      const rows = await asService<{ ok: boolean }>('select public.fail_scan($1, $2, $3) as ok', [
         scanId,
         errorCode,
+        onlyIfQueued,
       ]);
       return rows[0]?.ok === true;
     },
