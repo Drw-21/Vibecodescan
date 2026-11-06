@@ -123,12 +123,15 @@ describe('schema guards', () => {
     expect(rows).toEqual([]);
   });
 
-  it('has no public views or functions the API could expose', async () => {
+  it('has no public views, and no public function that API roles can call', async () => {
     const { rows } = await client.query<{ name: string }>(`
       select c.relname as name from pg_class c
       where c.relnamespace = 'public'::regnamespace and c.relkind in ('v', 'm')
       union all
-      select p.proname from pg_proc p where p.pronamespace = 'public'::regnamespace`);
+      select p.oid::regprocedure::text from pg_proc p
+      where p.pronamespace = 'public'::regnamespace
+        and (has_function_privilege('anon', p.oid, 'execute')
+          or has_function_privilege('authenticated', p.oid, 'execute'))`);
     expect(rows).toEqual([]);
   });
 

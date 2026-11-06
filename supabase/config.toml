@@ -27,3 +27,12 @@ enable_signup = true
 enable_signup = true
 enable_confirmations = true
 # Milestone 6 switches sign-in to magic links / OAuth only (spec: Account takeover).
+
+# Edge Functions. Imports (zod, supabase-js) are pinned in functions/deno.json.
+[functions.create-scan]
+verify_jwt = true
+import_map = "./functions/deno.json"
+
+[functions.run-scan]
+verify_jwt = true
+import_map = "./functions/deno.json"

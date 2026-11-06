@@ -10,8 +10,8 @@ plain-English security report with copy-paste fix prompts. Working name; rename 
 
 ## Status
 
-Milestone 1 (Foundation): database schema with row-level security, RLS tests, CI,
-change-control templates and the reference-suite expected results.
+Milestones 1–3 merged (foundation, engine core, passive checks); milestone 4 (scan
+functions) in review. See `CHANGELOG.md`.
 
 ## Run the checks locally
 
