@@ -79,6 +79,11 @@ export const LIMITS = {
   hostCooldownSeconds: 10 * 60,
   /** Largest request body create-scan accepts. */
   maxBodyBytes: 8 * 1024,
+  /**
+   * Header holding the visitor's real IP, set by the platform's edge and not forgeable by the
+   * visitor. Confirm on the real deployment before launch (launch blocker 4).
+   */
+  trustedIpHeader: 'cf-connecting-ip',
 } as const;
 
 /** The whole scan (collect + checks) must finish well inside the 60-second budget. */

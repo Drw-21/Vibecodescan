@@ -77,6 +77,34 @@ describe('runScan', () => {
     expect(await run(id)).toEqual({ status: 'failed', errorCode: 'scan_timeout' });
   });
 
+  it('the whole-scan deadline really stops the scan’s requests', async () => {
+    const site = appSite({ routes: { 'https://app.example.test/': { hang: true } } });
+    const net = fakeNet(site.routes);
+    const aborted: string[] = [];
+    const transport: typeof net.transport = (url, init) => {
+      init.signal.addEventListener('abort', () => aborted.push(url.href));
+      return net.transport(url, init);
+    };
+    const fetch = createSafeFetch({ resolve: net.resolve, transport, userAgent: 'test' });
+    const store = new MemoryStore();
+    const id = await queued(store, 'https://app.example.test/');
+    const started = Date.now();
+    expect(await runScan(id, { store, fetch, log: silentLogger, maxDurationMs: 50 })).toEqual({
+      status: 'failed',
+      errorCode: 'scan_timeout',
+    });
+    expect(aborted).toEqual(['https://app.example.test/']);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it('marks the scan failed (not stuck as queued) if claiming it throws', async () => {
+    const { store, run } = setup(appSite());
+    const id = await queued(store, 'https://app.example.test/');
+    store.claimScan = () => Promise.reject(new Error('connection reset'));
+    expect(await run(id)).toEqual({ status: 'failed', errorCode: 'internal' });
+    expect(store.scans.get(id)?.status).toBe('failed');
+  });
+
   it('marks the scan failed if saving the results fails', async () => {
     const { store, run } = setup(appSite());
     store.completeScan = () => Promise.reject(new Error('constraint violated'));

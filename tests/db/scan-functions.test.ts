@@ -251,3 +251,49 @@ describe('scan lifecycle', () => {
       expect(again.rows[0]?.ok).toBe(false);
     }));
 });
+
+describe('rate limits under concurrency', () => {
+  // Separate connections, really in parallel, committed (not rolled back).
+  async function race(calls: { host: string; ip: string }[]): Promise<string[]> {
+    const clients = calls.map(() => new pg.Client({ connectionString: databaseUrl() }));
+    await Promise.all(clients.map((c) => c.connect()));
+    try {
+      const results = await Promise.all(
+        calls.map(async (call, i) => {
+          const c = clients[i];
+          if (!c) throw new Error('no client');
+          await c.query('set role service_role');
+          const r = await c.query<{ outcome: string }>(
+            `select outcome from public.create_scan_with_limits($1, $2, null, null, 'passive', $3, 3, 600)`,
+            [`https://${call.host}/`, call.host, call.ip],
+          );
+          return r.rows[0]?.outcome ?? 'none';
+        }),
+      );
+      return results.sort();
+    } finally {
+      await Promise.all(clients.map((c) => c.end()));
+      await client.query('delete from public.scans');
+    }
+  }
+
+  it('never lets one IP past 3 scans, even with 8 requests at once', async () => {
+    const calls = Array.from({ length: 8 }, (_, i) => ({
+      host: `h${String(i)}.example.test`,
+      ip: 'c'.repeat(64),
+    }));
+    const outcomes = await race(calls);
+    expect(outcomes.filter((o) => o === 'ok')).toHaveLength(3);
+    expect(outcomes.filter((o) => o === 'daily_limit')).toHaveLength(5);
+  });
+
+  it('never scans one host twice, even with 6 requests at once from different IPs', async () => {
+    const calls = Array.from({ length: 6 }, (_, i) => ({
+      host: 'same.example.test',
+      ip: String(i).repeat(64),
+    }));
+    const outcomes = await race(calls);
+    expect(outcomes.filter((o) => o === 'ok')).toHaveLength(1);
+    expect(outcomes.filter((o) => o === 'host_cooldown')).toHaveLength(5);
+  });
+});

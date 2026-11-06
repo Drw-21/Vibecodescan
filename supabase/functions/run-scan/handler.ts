@@ -27,7 +27,12 @@ export function runScanHandler(deps: RunScanEndpointDeps): (req: Request) => Pro
     } catch {
       return problem(400, 'invalid_body', 'Send a scanId.', none);
     }
-    const result = await deps.runScan(scanId);
+    let result: RunScanResult;
+    try {
+      result = await deps.runScan(scanId);
+    } catch {
+      return problem(500, 'internal', 'Scan could not be run.', none);
+    }
     return json(
       200,
       result.status === 'failed'

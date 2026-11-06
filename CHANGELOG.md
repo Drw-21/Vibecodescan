@@ -16,6 +16,11 @@ All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
   in `package.json` and `supabase/functions/deno.json`.
 - Tests: SQL functions on Postgres, Supabase adapter against a fake server, handlers and
   `runScan` with an in-memory store, and an end-to-end test from URL to findings rows.
+- Independent review fixes: the visitor IP comes only from the platform-set header (never
+  X-Forwarded-For), IPv6 counts per /64, and anonymous scans without a trusted IP are refused;
+  bodies are capped while streaming; unexpected errors return a readable 500; a failed claim
+  marks the scan failed; the whole-scan deadline aborts running requests; concurrency tests prove
+  the limits hold under parallel requests.
 - Launch blockers 2 and 3 closed; decisions in docs/decisions/0006.
 
 ## 0.3.0 — Milestone 3: Passive checks

@@ -28,6 +28,29 @@ export interface CreateScanDeps {
 
 export function createScanHandler(deps: CreateScanDeps): (req: Request) => Promise<Response> {
   const origin = deps.allowedOrigin;
+  const handle = handler(deps);
+  return async (req) => {
+    try {
+      return await handle(req);
+    } catch (error) {
+      deps.log.error('create-scan failed', { error: errorName(error) });
+      return problem(
+        500,
+        'internal',
+        'Something went wrong on our side. Please try again.',
+        origin,
+      );
+    }
+  };
+}
+
+/** Only the error's class name: messages can contain database details or user input. */
+export function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
+}
+
+function handler(deps: CreateScanDeps): (req: Request) => Promise<Response> {
+  const origin = deps.allowedOrigin;
   return async (req) => {
     if (req.method === 'OPTIONS')
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
@@ -65,6 +88,15 @@ export function createScanHandler(deps: CreateScanDeps): (req: Request) => Promi
     const userId = await deps.userIdFromRequest(req);
     const ip = deps.clientIp(req);
     if (userId === null) {
+      // Without a trusted IP there is no per-visitor limit for an anonymous scan: refuse.
+      if (ip === null) {
+        return problem(
+          403,
+          'no_client_ip',
+          'We could not check your connection. Please try again, or sign in to scan.',
+          origin,
+        );
+      }
       const human =
         body.turnstileToken !== undefined && (await deps.verifyTurnstile(body.turnstileToken, ip));
       if (!human)

@@ -26,6 +26,17 @@ in the database. Several details are not fixed by the spec.
 - **Rate limits** come from `config.ts`: 3 free scans per UTC day per account **and** per IP,
   and one scan per host per 10 minutes **whoever asks** (it protects the target). Failed scans
   count too. The IP is stored only as an HMAC-SHA256 with a server secret (`IP_HASH_SECRET`).
+- **Which IP.** Only a header the platform sets and a visitor cannot forge
+  (`LIMITS.trustedIpHeader`, `cf-connecting-ip`), never `X-Forwarded-For`: proxies append to it,
+  so its first entry is whatever the visitor sent. An IPv6 address counts by its /64 network.
+  An **anonymous** scan with no trusted IP is refused, because no per-visitor limit could apply;
+  signed-in users are still limited per account. (The first version trusted X-Forwarded-For and
+  skipped the IP limit when it was missing: independent review.)
+- **Bodies** are read as a stream and refused as soon as they pass 8 KB.
+- **Unexpected errors** become a plain 500 with CORS headers, so the browser can show a message;
+  only the error's class name is logged (messages can contain database details). A scan whose
+  claim fails is marked failed rather than left queued. The whole-scan deadline aborts every
+  request still running, instead of only reporting a timeout.
 - **URLs** are normalised before anything else: `https://` added if missing; query string,
   fragment, credentials and non-default ports refused or dropped; only public domain names
   (no IP addresses, no single-label names). `safeFetch` still has the final say.

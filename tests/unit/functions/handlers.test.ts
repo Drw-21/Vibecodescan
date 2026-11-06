@@ -206,11 +206,40 @@ describe('create-scan', () => {
     expect(res0.ran).toEqual([]);
   });
 
-  it('works without a known IP (still rate-limited per account and host)', async () => {
+  it('refuses an anonymous scan when the visitor’s IP is unknown (no per-IP limit possible)', async () => {
     const { handler, store } = setup({ clientIp: () => null });
     const res = await handler(post({ url: 'a.example.com', turnstileToken: 'good-token' }));
-    expect(res.status).toBe(200);
-    expect(store.inputs[0]?.clientIpHash).toBeNull();
+    expect(res.status).toBe(403);
+    expect(await read(res)).toMatchObject({ error: 'no_client_ip' });
+    expect(store.inputs).toEqual([]);
+  });
+
+  it('lets a signed-in user scan without a known IP (account limit still applies)', async () => {
+    const { handler, store } = setup({
+      clientIp: () => null,
+      userIdFromRequest: () => Promise.resolve('user-1'),
+    });
+    const res = await handler(post({ url: 'a.example.com' }));
+    expect(res.status).toBe(202);
+    expect(store.inputs[0]).toMatchObject({ userId: 'user-1', clientIpHash: null });
+  });
+
+  it('turns an unexpected error into a readable 500 with CORS, leaking nothing', async () => {
+    const logged: string[] = [];
+    const { handler, store } = setup({
+      log: {
+        info: () => undefined,
+        error: (msg, fields) => logged.push(JSON.stringify({ msg, ...fields })),
+      },
+    });
+    store.createScan = () =>
+      Promise.reject(new Error('create_scan_with_limits: 42P01 relation "x" does not exist'));
+    const res = await handler(post({ url: 'a.example.com', turnstileToken: 'good-token' }));
+    expect(res.status).toBe(500);
+    expect(res.headers.get('access-control-allow-origin')).toBe(ORIGIN);
+    const text = JSON.stringify(await read(res));
+    expect(text).not.toContain('42P01');
+    expect(logged.join('')).not.toContain('relation');
   });
 });
 
@@ -241,6 +270,14 @@ describe('run-scan endpoint', () => {
     const res = await handler(req(`Bearer ${KEY}`, { scanId: id }));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: 'skipped' });
+  });
+
+  it('answers 500 instead of crashing when the scan step throws', async () => {
+    const broken = runScanHandler({
+      serviceRoleKey: KEY,
+      runScan: () => Promise.reject(new Error('db down')),
+    });
+    expect((await broken(req(`Bearer ${KEY}`, { scanId: id }))).status).toBe(500);
   });
 
   it('never accepts an empty key, even if configured empty', async () => {

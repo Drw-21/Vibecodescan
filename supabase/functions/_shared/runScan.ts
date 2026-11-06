@@ -29,18 +29,27 @@ class ScanTimeout extends Error {}
 
 export async function runScan(scanId: string, deps: RunScanDeps): Promise<RunScanResult> {
   const { store, log } = deps;
-  const scan = await store.claimScan(scanId);
-  if (!scan) {
-    log.info('scan not claimable (already run or unknown)', { scan_id: scanId });
-    return { status: 'skipped' };
-  }
   const started = Date.now();
-  log.info('scan started', { scan_id: scanId, kind: scan.kind });
+  // One switch that stops every request of this scan when the whole-scan deadline passes.
+  const stop = new AbortController();
+  const fetch: SafeFetch = (url, init = {}) =>
+    deps.fetch(url, {
+      ...init,
+      signal: init.signal ? AbortSignal.any([init.signal, stop.signal]) : stop.signal,
+    });
 
   try {
+    const scan = await store.claimScan(scanId);
+    if (!scan) {
+      log.info('scan not claimable (already run or unknown)', { scan_id: scanId });
+      return { status: 'skipped' };
+    }
+    log.info('scan started', { scan_id: scanId, kind: scan.kind });
+
     const { findings, shadow } = await withDeadline(
-      engine(scan.url, deps.fetch),
+      engine(scan.url, fetch),
       deps.maxDurationMs ?? SCAN.maxDurationMs,
+      stop,
     );
     const result = score(findings);
     const saved = await store.completeScan(
@@ -76,10 +85,13 @@ export async function runScan(scanId: string, deps: RunScanDeps): Promise<RunSca
       error_code: errorCode,
       duration_ms: Date.now() - started,
     });
-    await store.failScan(scanId, errorCode).catch((e: unknown) => {
-      log.error('could not mark scan failed', { scan_id: scanId, error: String(e).slice(0, 200) });
+    // Works whether the scan is still queued (the claim failed) or running.
+    await store.failScan(scanId, errorCode).catch(() => {
+      log.error('could not mark scan failed', { scan_id: scanId });
     });
     return { status: 'failed', errorCode };
+  } finally {
+    stop.abort();
   }
 }
 
@@ -94,10 +106,11 @@ async function engine(url: string, fetch: SafeFetch) {
   });
 }
 
-function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+function withDeadline<T>(work: Promise<T>, ms: number, stop: AbortController): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
+      stop.abort(); // really stop the scan's requests, not just report a timeout
       reject(new ScanTimeout('scan took too long'));
     }, ms);
   });

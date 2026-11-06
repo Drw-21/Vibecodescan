@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { clientIp, hashIp } from '../../../supabase/functions/_shared/clientIp.ts';
+import { clientIp, hashIp, rateLimitKey } from '../../../supabase/functions/_shared/clientIp.ts';
 import { createResolver } from '../../../supabase/functions/_shared/resolver.ts';
 import { createTurnstileVerifier } from '../../../supabase/functions/_shared/turnstile.ts';
-import { normaliseScanUrl } from '../../../supabase/functions/_shared/validate.ts';
+import { normaliseScanUrl, readJson } from '../../../supabase/functions/_shared/validate.ts';
 
 describe('normaliseScanUrl', () => {
   it.each([
@@ -35,17 +35,28 @@ describe('normaliseScanUrl', () => {
 });
 
 describe('clientIp and hashIp', () => {
-  const req = (xff?: string) =>
-    new Request('https://fn.example.test/', { headers: xff ? { 'x-forwarded-for': xff } : {} });
+  const req = (headers: Record<string, string>) =>
+    new Request('https://fn.example.test/', { headers });
 
-  it('takes the first address in X-Forwarded-For', () => {
-    expect(clientIp(req('203.0.113.7, 10.0.0.1'))).toBe('203.0.113.7');
-    expect(clientIp(req('2001:db8::1'))).toBe('2001:db8::1');
+  it('reads the platform-set header', () => {
+    expect(clientIp(req({ 'cf-connecting-ip': '203.0.113.7' }))).toBe('203.0.113.7');
+    expect(clientIp(req({ 'cf-connecting-ip': '2001:db8::1' }))).toBe('2001:db8::1');
+  });
+
+  it('never trusts X-Forwarded-For, which a visitor can set to anything', () => {
+    expect(clientIp(req({ 'x-forwarded-for': '203.0.113.7' }))).toBeNull();
   });
 
   it('ignores missing or junk values', () => {
-    expect(clientIp(req())).toBeNull();
-    expect(clientIp(req('<script>'))).toBeNull();
+    expect(clientIp(req({}))).toBeNull();
+    expect(clientIp(req({ 'cf-connecting-ip': '<script>' }))).toBeNull();
+    expect(clientIp(req({ 'cf-connecting-ip': '1.2.3.4, 5.6.7.8' }))).toBeNull();
+  });
+
+  it('treats a whole IPv6 /64 as one visitor', () => {
+    expect(rateLimitKey('2001:db8:aaaa:bbbb::1')).toBe('2001:db8:aaaa:bbbb::/64');
+    expect(rateLimitKey('2001:db8:aaaa:bbbb:ffff::9')).toBe('2001:db8:aaaa:bbbb::/64');
+    expect(rateLimitKey('203.0.113.7')).toBe('203.0.113.7');
   });
 
   it('hashes with a secret: 64 hex characters, stable, and different per secret', async () => {
@@ -53,7 +64,44 @@ describe('clientIp and hashIp', () => {
     expect(a).toMatch(/^[0-9a-f]{64}$/);
     expect(await hashIp('203.0.113.7', 'secret-one')).toBe(a);
     expect(await hashIp('203.0.113.7', 'secret-two')).not.toBe(a);
-    expect(a).not.toContain('203');
+    expect(await hashIp('203.0.113.8', 'secret-one')).not.toBe(a);
+    expect(await hashIp('2001:db8:1:2::1', 's')).toBe(await hashIp('2001:db8:1:2::abcd', 's'));
+  });
+});
+
+describe('readJson', () => {
+  const stream = (chunks: string[]) =>
+    new ReadableStream<Uint8Array>({
+      start(c) {
+        for (const chunk of chunks) c.enqueue(new TextEncoder().encode(chunk));
+        c.close();
+      },
+    });
+
+  it('reads a small JSON body', async () => {
+    const r = new Request('https://fn.example.test/', {
+      method: 'POST',
+      body: '{"url":"a.example.com"}',
+    });
+    expect(await readJson(r)).toEqual({ url: 'a.example.com' });
+  });
+
+  it('refuses a declared Content-Length over the limit without reading', async () => {
+    const r = new Request('https://fn.example.test/', {
+      method: 'POST',
+      headers: { 'content-length': '999999' },
+      body: '{}',
+    });
+    await expect(readJson(r, 100)).rejects.toThrow(/too large/);
+  });
+
+  it('stops reading a streamed body as soon as it passes the limit', async () => {
+    const r = new Request('https://fn.example.test/', {
+      method: 'POST',
+      body: stream(['{"a":"', 'x'.repeat(80), 'y'.repeat(80), '"}']),
+      duplex: 'half',
+    });
+    await expect(readJson(r, 100)).rejects.toThrow(/too large/);
   });
 });
 

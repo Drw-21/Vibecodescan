@@ -40,10 +40,35 @@ export function normaliseScanUrl(input: string): ScanTarget | null {
   return { url: `${url.protocol}//${host}${url.pathname}`, host };
 }
 
-/** Reads a JSON body no larger than the limit. */
-export async function readJson(req: Request): Promise<unknown> {
-  const text = await req.text();
-  if (new TextEncoder().encode(text).byteLength > LIMITS.maxBodyBytes)
-    throw new Error('body too large');
-  return JSON.parse(text) as unknown;
+/**
+ * Reads a JSON body no larger than the limit. Stops reading as soon as the limit is passed,
+ * so a huge body is never buffered.
+ */
+export async function readJson(
+  req: Request,
+  maxBytes: number = LIMITS.maxBodyBytes,
+): Promise<unknown> {
+  const declared = Number(req.headers.get('content-length') ?? '0');
+  if (declared > maxBytes) throw new Error('body too large');
+  if (!req.body) throw new Error('empty body');
+  const reader: ReadableStreamDefaultReader<Uint8Array> = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw new Error('body too large');
+    }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    all.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder().decode(all)) as unknown;
 }
