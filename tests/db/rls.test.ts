@@ -299,10 +299,26 @@ describe('sites', () => {
       expect(after?.verify_token).not.toBe(before?.verify_token);
     }));
 
-  it('rejects URLs that are not http(s)', () =>
+  it('rejects URLs that are not http(s) or whose host could be read two ways', () =>
     inRollback(client, async (tx) => {
       const w = await seed(tx);
-      for (const url of ['javascript:alert(1)', 'file:///etc/passwd', 'ftp://x.test', 'https://']) {
+      const bad = [
+        'javascript:alert(1)',
+        'file:///etc/passwd',
+        'ftp://x.test',
+        'https://',
+        // Each of these makes a regex and new URL() disagree about the host
+        // (verification bypass found in independent review).
+        'https://attacker.test\\@victim.test/',
+        'https://attacker.test@victim.test/',
+        'https://vic\ttim.test/',
+        'https://victim%2Etest/',
+        'https://[::1]/',
+        'https://victim.test/path with space',
+        'https://victim.test\\.evil.test/',
+        'https://bücher.test/',
+      ];
+      for (const url of bad) {
         // Rejected either by the host trigger (22023) or the url check constraint (23514).
         const error: unknown = await tx
           .as(user(w.a), 'insert into public.sites (url) values ($1)', [url])
@@ -310,7 +326,28 @@ describe('sites', () => {
             () => null,
             (e: unknown) => e,
           );
-        expect(error).toMatchObject({ code: expect.stringMatching(/^(22023|23514)$/) as unknown });
+        expect(error, url).toMatchObject({
+          code: expect.stringMatching(/^(22023|23514)$/) as unknown,
+        });
+      }
+    }));
+
+  it('stores the same host a standard URL parser would fetch', () =>
+    inRollback(client, async (tx) => {
+      const w = await seed(tx);
+      const good = [
+        'https://App.Example.test',
+        'http://port.example.test:8080/x?y=1#z',
+        'https://xn--bcher-kva.test/',
+        'https://a-b.example.test./path',
+      ];
+      for (const url of good) {
+        const { rows } = await tx.as<{ host: string }>(
+          user(w.a),
+          'insert into public.sites (url) values ($1) returning host',
+          [url],
+        );
+        expect(rows[0]?.host, url).toBe(new URL(url).hostname.replace(/\.$/, ''));
       }
     }));
 
@@ -390,6 +427,35 @@ describe('findings', () => {
         tx.as(a, `update public.findings set status = 'pass' where id = $1`, [w.findingA]),
       );
       await expectDenied(tx.as(a, 'delete from public.findings where id = $1', [w.findingA]));
+    }));
+
+  it('refuses evidence that contains a full secret (redaction backstop)', () =>
+    inRollback(client, async (tx) => {
+      const w = await seed(tx);
+      // Fake keys built at runtime so secret scanners do not flag this file.
+      const stripeLike = 'sk_' + 'live_' + 'A1b2C3d4E5'.repeat(10);
+      const githubLike = 'gh' + 'p_' + 'Z9y8X7w6V5'.repeat(4);
+      for (const evidence of [stripeLike, githubLike, `key=${githubLike}`]) {
+        await expect(
+          tx.as(service, 'update public.findings set evidence_redacted = $1 where id = $2', [
+            evidence,
+            w.findingA,
+          ]),
+          evidence.slice(0, 4),
+        ).rejects.toMatchObject({ code: '23514' });
+      }
+      // Properly redacted evidence and ordinary details are accepted.
+      for (const evidence of [
+        'sk_l…x9Q2',
+        'Strict-Transport-Security',
+        'user_notification_preferences',
+        '/assets/index-BxYz1234.js.map',
+      ]) {
+        await tx.as(service, 'update public.findings set evidence_redacted = $1 where id = $2', [
+          evidence,
+          w.findingA,
+        ]);
+      }
     }));
 
   it('refuses evidence long enough to be a full secret store', () =>
@@ -482,6 +548,25 @@ describe('service role (Edge Functions)', () => {
         [w.siteA],
       );
       expect(upd.rowCount).toBe(1);
+    }));
+
+  it('cannot record a scan of user A’s site under user B (so B never sees A’s findings)', () =>
+    inRollback(client, async (tx) => {
+      const w = await seed(tx);
+      await expect(
+        tx.as(
+          service,
+          `insert into public.scans (site_id, user_id, url, host) values ($1, $2, 'https://a.example.test', 'a.example.test')`,
+          [w.siteA, w.b],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      await expect(
+        tx.as(
+          service,
+          `insert into public.scans (site_id, url, host) values ($1, 'https://a.example.test', 'a.example.test')`,
+          [w.siteA],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
     }));
 
   it('cannot create a deep scan without a signed-in owner and site', () =>

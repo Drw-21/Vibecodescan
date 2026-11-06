@@ -15,7 +15,7 @@ change-control templates and the reference-suite expected results.
 
 ## Run the checks locally
 
-Needs Node 22.12+ and, for the database tests, a throwaway Postgres 15+.
+Needs Node 22.12+ and, for the database tests, a throwaway Postgres 15+ (CI uses 17).
 
 ```bash
 npm ci

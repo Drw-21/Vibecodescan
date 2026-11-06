@@ -7,7 +7,7 @@
 
 create table public.scans (
   id          uuid primary key default gen_random_uuid(),
-  site_id     uuid references public.sites (id) on delete cascade,
+  site_id     uuid,
   user_id     uuid references public.profiles (id) on delete cascade,
   url         text not null check (char_length(url) <= 2048),
   host        text not null,
@@ -19,8 +19,12 @@ create table public.scans (
   created_at  timestamptz not null default now(),
   started_at  timestamptz,
   finished_at timestamptz,
+  -- A scan of a site always belongs to that site's owner (composite key below), so a
+  -- bug that writes the wrong user_id cannot expose one user's findings to another.
+  foreign key (site_id, user_id) references public.sites (id, user_id) on delete cascade,
+  check (site_id is null or user_id is not null),
   -- a deep scan always belongs to a signed-in user's site
-  check (kind = 'passive' or (site_id is not null and user_id is not null)),
+  check (kind = 'passive' or site_id is not null),
   -- a finished scan has a grade; a failed one has an error code
   check (status <> 'done' or (grade is not null and score is not null)),
   check (status <> 'failed' or error_code is not null)
@@ -28,6 +32,7 @@ create table public.scans (
 
 create index scans_site_id_started_at_idx on public.scans (site_id, started_at desc);
 create index scans_user_id_idx on public.scans (user_id);
+create index scans_site_id_user_id_idx on public.scans (site_id, user_id);
 create index scans_host_created_at_idx on public.scans (host, created_at desc);
 
 alter table public.scans enable row level security;

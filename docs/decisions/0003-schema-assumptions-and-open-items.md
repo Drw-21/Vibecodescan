@@ -26,3 +26,8 @@ added later as new migrations, not by editing these ones.
 - Limiting `monitored` to 3 sites on the Monitor plan; `weekly-rescan` must check the plan in
   `subscriptions` and never trust `monitored` alone [8].
 - 90-day retention job with `pg_cron` [8].
+
+**Known gaps accepted for now:**
+
+- GitHub Actions are pinned to major version tags (`@v5`), not commit SHAs. Dependabot keeps
+  them current. Revisit before launch (supply chain).

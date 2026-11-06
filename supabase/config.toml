@@ -10,7 +10,7 @@ max_rows = 100
 
 [db]
 port = 54322
-major_version = 15
+major_version = 17
 
 [db.seed]
 enabled = true
@@ -25,5 +25,5 @@ enable_signup = true
 
 [auth.email]
 enable_signup = true
-# Magic links only: no passwords to leak or stuff.
 enable_confirmations = true
+# Milestone 6 switches sign-in to magic links / OAuth only (spec: Account takeover).

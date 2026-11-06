@@ -9,8 +9,17 @@ create table public.sites (
   id                      uuid primary key default gen_random_uuid(),
   user_id                 uuid not null default auth.uid()
                             references public.profiles (id) on delete cascade,
+  -- Strict on purpose, so the host the database stores can never differ from the host
+  -- a standard URL parser (new URL) would fetch: the authority may hold only ASCII
+  -- letters, digits, dots and hyphens plus an optional port (no "@", "%", "[", "\",
+  -- whitespace or control characters anywhere). Unicode domains must be sent in
+  -- punycode (xn--...), which new URL() produces.
   url                     text not null
-                            check (char_length(url) <= 2048 and url ~* '^https?://[^/?#[:space:]]+'),
+                            check (
+                              char_length(url) <= 2048
+                              and url ~ '^[hH][tT][tT][pP][sS]?://[A-Za-z0-9.-]+(:[0-9]{1,5})?([/?#].*)?$'
+                              and url !~ '[[:space:][:cntrl:]\\]'
+                            ),
   host                    text not null,
   platform                text not null default 'unknown'
                             check (platform in ('lovable', 'bolt', 'replit', 'v0', 'vercel', 'netlify', 'unknown')),
@@ -20,10 +29,10 @@ create table public.sites (
   monitored               boolean not null default false,
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now(),
-  unique (user_id, host)
+  unique (user_id, host),          -- also serves as the index for the user_id foreign key
+  unique (id, user_id)             -- lets scans prove their owner is the site's owner
 );
 
-create index sites_user_id_idx on public.sites (user_id);
 create index sites_host_idx on public.sites (host);
 create index sites_monitored_idx on public.sites (monitored) where monitored;
 
@@ -59,8 +68,9 @@ as $$
 declare
   derived text;
 begin
-  -- scheme://[userinfo@]host[:port]... -> lower-case host, trailing dot removed
-  derived := lower(substring(new.url from '^[a-zA-Z]+://(?:[^@/?#]*@)?([^/?#:]+)'));
+  -- scheme://host[:port]... -> lower-case host, trailing dot removed.
+  -- The url check constraint guarantees the authority has no userinfo or odd characters.
+  derived := lower(substring(new.url from '^[a-zA-Z]+://([A-Za-z0-9.-]+)'));
   derived := rtrim(derived, '.');
   if derived is null or derived = '' then
     raise exception 'sites.url has no host' using errcode = '22023';
