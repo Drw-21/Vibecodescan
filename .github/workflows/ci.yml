@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -70,7 +70,7 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/scanner_test
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -88,7 +88,7 @@ jobs:
       GITLEAKS_VERSION: 8.24.0
       GITLEAKS_SHA256: cb49b7de5ee986510fe8666ca0273a6cc15eb82571f2f14832c9e8920751f3a4
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install Gitleaks (pinned, checksum verified)
