@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* Expose the tokens to Tailwind utilities (bg-surface, text-secondary, …). */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--surface-raised);
+  --color-ink: var(--text);
+  --color-secondary: var(--text-secondary);
+  --color-separator: var(--separator);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--accent-text);
+  --color-critical: var(--critical);
+  --color-critical-fill: var(--critical-fill);
+  --color-high: var(--high);
+  --color-high-fill: var(--high-fill);
+  --color-medium: var(--medium);
+  --color-medium-fill: var(--medium-fill);
+  --color-low: var(--low);
+  --color-low-fill: var(--low-fill);
+  --color-pass: var(--pass);
+  --font-sans: var(--font-sans);
+  --text-34: var(--text-34);
+  --text-28: var(--text-28);
+  --text-22: var(--text-22);
+  --text-17: var(--text-17);
+  --text-15: var(--text-15);
+  --text-13: var(--text-13);
+  --radius-card: var(--radius-card);
+  --radius-button: var(--radius-button);
+  --shadow-card: var(--shadow-card);
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 100%;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-size: var(--text-17);
+  line-height: 1.47;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

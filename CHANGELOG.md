@@ -2,7 +2,20 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
-## 0.4.0 — Milestone 4: Scan functions (unreleased)
+## 0.5.0 — Milestone 5: Frontend core (unreleased)
+
+- `web/`: React + Vite + Tailwind with design tokens (Apple type scale, 8-pt grid, light and dark,
+  one accent; severity by icon + word + colour).
+- Screens: Landing (one URL field, Turnstile, three trust points, sample full report), Scan in
+  progress (live checklist), Report (grade ring, plain summary, counts by severity, top 3 issues).
+- Full-report layout (findings grouped by severity, expandable, "Copy fix prompt") built and used
+  by the sample report.
+- `web/public/_headers`: strict security headers for our own site.
+- Tests: token contrast (WCAG AA, both themes), API response validation, components (including a
+  stored-XSS test), the whole flow; and a browser test in CI at 375 px and 1280 px, light and dark.
+- MVP testing guide: `docs/mvp-testing.md`. Decisions in docs/decisions/0007.
+
+## 0.4.0 — Milestone 4: Scan functions
 
 - `create-scan`: Zod-validated input, URL normalisation, Turnstile for anonymous visitors,
   CORS limited to our site, rate limits (3 free scans/day per account and per IP, one scan per

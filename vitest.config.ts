@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -5,6 +6,10 @@ export default defineConfig({
     projects: [
       {
         test: { name: 'unit', include: ['tests/unit/**/*.test.ts'] },
+      },
+      {
+        plugins: [react()],
+        test: { name: 'web', include: ['web/src/**/*.test.{ts,tsx}'], environment: 'jsdom' },
       },
       {
         // Database tests need a Postgres to talk to (DATABASE_URL).
