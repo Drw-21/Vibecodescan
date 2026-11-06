@@ -92,6 +92,16 @@ export const cases: CheckCase[] = [
     expect: 'pass',
   },
   {
+    name: 'fail safe: the server is overloaded (503) for every probe',
+    site: appSite({ routes: { 'https://app.example.test/*': { status: 503, body: 'busy' } } }),
+    expect: 'incomplete',
+  },
+  {
+    name: 'fail safe: the server rate-limits us (429)',
+    site: appSite({ routes: { 'https://app.example.test/*': { status: 429, body: 'slow down' } } }),
+    expect: 'incomplete',
+  },
+  {
     name: 'the probes could not be made',
     site: appSite({ routes: { 'https://app.example.test/*': { refuse: true } } }),
     expect: 'incomplete',

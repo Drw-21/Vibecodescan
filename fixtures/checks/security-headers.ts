@@ -42,6 +42,38 @@ export const cases: CheckCase[] = [
     failSeverities: ['low'],
   },
   {
+    name: 'frame-ancestors * does not protect against framing',
+    site: appSite({
+      headers: {
+        ...without('x-frame-options'),
+        'content-security-policy': "default-src 'self'; frame-ancestors *",
+      },
+    }),
+    expect: 'fail',
+    failSeverities: ['low'],
+  },
+  {
+    name: 'false-positive trap: CSP set in a <meta> tag counts',
+    site: appSite({
+      headers: without('content-security-policy'),
+      head: `<meta http-equiv="Content-Security-Policy" content="default-src 'self'">`,
+    }),
+    expect: 'pass',
+  },
+  {
+    name: 'false-positive trap: the same header sent twice (nosniff, nosniff / DENY, DENY)',
+    site: appSite({
+      headers: [
+        ...Object.entries(without('x-content-type-options', 'x-frame-options')),
+        ['x-content-type-options', 'nosniff'],
+        ['x-content-type-options', 'nosniff'],
+        ['x-frame-options', 'DENY'],
+        ['x-frame-options', 'DENY'],
+      ],
+    }),
+    expect: 'pass',
+  },
+  {
     name: 'all five protections set',
     site: appSite(),
     expect: 'pass',

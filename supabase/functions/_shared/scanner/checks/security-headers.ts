@@ -1,13 +1,14 @@
 // security-headers: five browser protections a site switches on with response headers.
 // One finding per protection, so the report can say exactly which ones are missing.
 
+import { attribute, findTags } from '../html.ts';
 import type { Check, Finding, Severity } from '../types.ts';
 
 interface HeaderRule {
   key: string;
   name: string;
   severity: Severity;
-  ok: (h: Headers) => boolean;
+  ok: (h: Headers, html: string) => boolean;
   missingTitle: string;
   okTitle: string;
   explanation: string;
@@ -15,12 +16,36 @@ interface HeaderRule {
 
 const csp = (h: Headers): string => h.get('content-security-policy') ?? '';
 
+/** First value of a header that a host and a framework may both have set ("nosniff, nosniff"). */
+const first = (h: Headers, name: string): string =>
+  (h.get(name) ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
+
+/** A CSP can also be set in the page itself; it protects scripts just the same. */
+function metaCsp(html: string): string {
+  for (const tag of findTags(html, 'meta')) {
+    if ((attribute(tag, 'http-equiv') ?? '').toLowerCase() === 'content-security-policy') {
+      return (attribute(tag, 'content') ?? '').trim();
+    }
+  }
+  return '';
+}
+
+/** frame-ancestors that actually limits who can frame the page (not "*" or a bare scheme). */
+function framingLimited(policy: string): boolean {
+  const directive = /frame-ancestors([^;]*)/i.exec(policy)?.[1];
+  if (directive === undefined) return false;
+  const sources = directive.trim().split(/\s+/).filter(Boolean);
+  return (
+    sources.length > 0 && !sources.some((s) => s === '*' || /^(?:https?|data|blob):?$/i.test(s))
+  );
+}
+
 const RULES: HeaderRule[] = [
   {
     key: 'csp',
     name: 'Content-Security-Policy',
     severity: 'medium',
-    ok: (h) => csp(h).trim() !== '',
+    ok: (h, html) => csp(h).trim() !== '' || metaCsp(html) !== '',
     missingTitle: 'No protection against injected scripts (Content-Security-Policy)',
     okTitle: 'Protection against injected scripts is on (Content-Security-Policy)',
     explanation:
@@ -43,9 +68,7 @@ const RULES: HeaderRule[] = [
     key: 'frame',
     name: 'X-Frame-Options / frame-ancestors',
     severity: 'low',
-    ok: (h) =>
-      /^(deny|sameorigin)$/i.test((h.get('x-frame-options') ?? '').trim()) ||
-      /frame-ancestors/i.test(csp(h)),
+    ok: (h) => /^(deny|sameorigin)$/.test(first(h, 'x-frame-options')) || framingLimited(csp(h)),
     missingTitle: 'Other sites can show your app inside theirs (clickjacking)',
     okTitle: 'Other sites cannot show your app inside theirs',
     explanation:
@@ -55,7 +78,7 @@ const RULES: HeaderRule[] = [
     key: 'nosniff',
     name: 'X-Content-Type-Options',
     severity: 'low',
-    ok: (h) => (h.get('x-content-type-options') ?? '').trim().toLowerCase() === 'nosniff',
+    ok: (h) => first(h, 'x-content-type-options') === 'nosniff',
     missingTitle: 'Browsers may guess file types (X-Content-Type-Options)',
     okTitle: 'Browsers do not guess file types (X-Content-Type-Options)',
     explanation:
@@ -84,7 +107,7 @@ export const securityHeaders: Check = {
   run(ctx) {
     return Promise.resolve(
       RULES.map((rule): Finding => {
-        const ok = rule.ok(ctx.headers);
+        const ok = rule.ok(ctx.headers, ctx.html);
         return {
           checkId: this.id,
           status: ok ? 'pass' : 'fail',

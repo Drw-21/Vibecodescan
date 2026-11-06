@@ -58,6 +58,9 @@ export const exposedFiles: Check = {
         const res = await ctx.fetch(new URL(probe.path, ctx.url.origin), {
           maxBytes: PROBE_MAX_BYTES,
         });
+        // A rate-limited or failing server never really answered: we could not look.
+        if (res.status === 429 || res.status >= 500)
+          throw new Error(`status ${String(res.status)}`);
         return res.status === 200 && probe.looksReal(res.body);
       }),
     );

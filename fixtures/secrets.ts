@@ -31,8 +31,10 @@ export const supabaseUrl = (): string => `https://${SUPABASE_REF}.supabase.co`;
 export const fake = {
   openai: (): string => ['sk', 'proj', mixed(48, 1)].join('-'),
   anthropic: (): string => ['sk', 'ant', 'api03', mixed(93, 2)].join('-'),
+  anthropicAdmin: (): string => ['sk', 'ant', 'admin01', mixed(93, 16)].join('-'),
   stripeLive: (): string => ['sk', 'live', mixed(99, 3)].join('_'),
   stripeTest: (): string => ['sk', 'test', mixed(99, 4)].join('_'),
+  stripeRestricted: (): string => ['rk', 'live', mixed(99, 15)].join('_'),
   stripePublishable: (): string => ['pk', 'live', mixed(99, 6)].join('_'),
   supabaseServiceRole: (): string =>
     jwt({ iss: 'supabase', ref: SUPABASE_REF, role: 'service_role', iat: 1, exp: 2 }),
@@ -44,5 +46,7 @@ export const fake = {
   awsSecret: (): string => mixed(40, 10),
   resend: (): string => ['re', mixed(8, 11), mixed(24, 12)].join('_'),
   github: (): string => ['gh', 'p_', mixed(36, 13)].join(''),
+  githubServer: (): string => ['gh', 's_', mixed(36, 17)].join(''),
+  githubFineGrained: (): string => ['github', 'pat', mixed(22, 18), mixed(59, 19)].join('_'),
   firebaseApiKey: (): string => ['AI', 'za', 'Sy', mixed(33, 14)].join(''),
 };

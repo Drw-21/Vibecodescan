@@ -1,9 +1,11 @@
-// secret-in-bundle: private keys shipped in the JavaScript (or inline scripts) that every
-// visitor downloads. Public-by-design keys (Supabase anon/publishable, Stripe pk_, Firebase
-// apiKey) are never flagged. Only keys inside quotes count, which rules out class names
-// and comments. Evidence is redacted; the full key never leaves this file.
+// secret-in-bundle: private keys shipped in the JavaScript (or inline scripts) that the app
+// loads on its first page. Public-by-design keys (Supabase anon/publishable, Stripe pk_,
+// Firebase apiKey) are never flagged. A key must not be glued to other letters, digits, "_"
+// or "-" on either side, so "Bearer sk-…", quoted, escaped-JSON and template-literal keys are
+// all found while longer identifiers are not. Evidence is redacted; the full key never
+// leaves this file.
 
-import { JWT_IN_QUOTES, jwtPayload } from '../jwt.ts';
+import { JWT_TOKEN, jwtPayload } from '../jwt.ts';
 import { redactSecret, safeEvidence, safePath } from '../redact.ts';
 import type { Check, Finding, Severity } from '../types.ts';
 
@@ -22,56 +24,57 @@ const RULES: Rule[] = [
   {
     label: 'Anthropic API key',
     severity: 'critical',
-    pattern: /(?<=["'`])sk-ant-(?:api|admin)\d{2}-[A-Za-z0-9_-]{80,}/g,
+    pattern: /(?<![A-Za-z0-9_-])sk-ant-(?:api|admin)\d{2}-[A-Za-z0-9_-]{80,}/g,
   },
   {
     label: 'OpenAI API key',
     severity: 'critical',
-    pattern: /(?<=["'`])sk-(?!ant-)(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}(?=["'`])/g,
+    pattern:
+      /(?<![A-Za-z0-9_-])sk-(?!ant-)(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}(?![A-Za-z0-9_-])/g,
     accept: hasMixedChars,
   },
   {
     label: 'Stripe secret key',
     severity: 'critical',
-    pattern: /(?<=["'`])[sr]k_live_[A-Za-z0-9]{20,}/g,
+    pattern: /(?<![A-Za-z0-9_-])[sr]k_live_[A-Za-z0-9]{20,}/g,
   },
   {
     label: 'Stripe test-mode secret key',
     severity: 'high',
-    pattern: /(?<=["'`])[sr]k_test_[A-Za-z0-9]{20,}/g,
+    pattern: /(?<![A-Za-z0-9_-])[sr]k_test_[A-Za-z0-9]{20,}/g,
   },
   {
     label: 'Supabase service_role key',
     severity: 'critical',
-    pattern: JWT_IN_QUOTES,
+    pattern: JWT_TOKEN,
     accept: (token) => jwtPayload(token)?.['role'] === 'service_role',
   },
   {
     label: 'Supabase secret key',
     severity: 'critical',
-    pattern: /(?<=["'`])sb_secret_[A-Za-z0-9_-]{20,}/g,
+    pattern: /(?<![A-Za-z0-9_-])sb_secret_[A-Za-z0-9_-]{20,}/g,
   },
   {
     label: 'AWS secret access key',
     severity: 'critical',
     pattern:
-      /(?:secretAccessKey|secret_access_key|aws_secret_access_key|AWS_SECRET_ACCESS_KEY)["']?\s*[:=]\s*["'`]([A-Za-z0-9/+]{40})["'`]/g,
+      /(?:secretAccessKey|secret_access_key|SECRET_ACCESS_KEY)\\?["']?\s*[:=]\s*\\?["'`]([A-Za-z0-9/+]{40})\\?["'`]/g,
     group: 1,
   },
   {
     label: 'AWS access key ID',
     severity: 'high',
-    pattern: /(?<=["'`])(?:AKIA|ASIA)[A-Z0-9]{16}(?=["'`])/g,
+    pattern: /(?<![A-Za-z0-9_-])(?:AKIA|ASIA)[A-Z0-9]{16}(?![A-Za-z0-9_-])/g,
   },
   {
     label: 'Resend API key',
     severity: 'critical',
-    pattern: /(?<=["'`])re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{16,}/g,
+    pattern: /(?<![A-Za-z0-9_-])re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{16,}/g,
   },
   {
     label: 'GitHub token',
     severity: 'critical',
-    pattern: /(?<=["'`])(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})/g,
+    pattern: /(?<![A-Za-z0-9_-])(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})/g,
   },
 ];
 
@@ -128,7 +131,7 @@ export const secretInBundle: Check = {
         severity: 'critical',
         title: 'No private keys found in your app’s code',
         explanation:
-          'We read the JavaScript your app sends to every visitor and found no private API keys. Public keys that are meant to be there (like a Supabase anon key) are fine.',
+          'We read the JavaScript your app loads on its first page and found no private API keys. Public keys that are meant to be there (like a Supabase anon key) are fine.',
         fixKey: 'secret-in-bundle',
       },
     ]);

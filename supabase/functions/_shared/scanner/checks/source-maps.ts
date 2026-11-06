@@ -6,7 +6,8 @@ import { safeEvidence, safePath } from '../redact.ts';
 import type { Check, Finding } from '../types.ts';
 
 const MAPPING_COMMENT = /\/\/[#@]\s*sourceMappingURL=([^\s'"]+)\s*$/m;
-const MAX_PROBES = 5;
+/** Every collected bundle is checked (collect loads at most 25). */
+const MAX_PROBES = 25;
 const PROBE_MAX_BYTES = 64 * 1024;
 
 const looksLikeSourceMap = (body: string): boolean =>
@@ -52,6 +53,9 @@ export const sourceMaps: Check = {
     const results = await Promise.allSettled(
       candidates.map(async (url) => {
         const res = await ctx.fetch(url, { maxBytes: PROBE_MAX_BYTES });
+        // A rate-limited or failing server never really answered: we could not look.
+        if (res.status === 429 || res.status >= 500)
+          throw new Error(`status ${String(res.status)}`);
         return res.status === 200 && looksLikeSourceMap(res.body);
       }),
     );

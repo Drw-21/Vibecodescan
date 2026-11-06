@@ -1,4 +1,4 @@
-import { fake, supabaseUrl } from '../secrets.ts';
+import { fake, mixed, supabaseUrl } from '../secrets.ts';
 import { appSite } from '../sites.ts';
 import type { CheckCase } from './types.ts';
 
@@ -18,6 +18,10 @@ function leaking(name: string, key: string, severity: 'critical' | 'high'): Chec
 const awsId = fake.awsKeyId();
 const awsSecret = fake.awsSecret();
 const inlineKey = fake.openai();
+const bearerKey = ['sk', 'proj', mixed(48, 40)].join('-');
+const stripeBearer = fake.stripeLive();
+const rscKey = ['sk', 'proj', mixed(48, 41)].join('-');
+const commentKey = ['sk', 'proj', mixed(48, 42)].join('-');
 
 export const cases: CheckCase[] = [
   leaking('OpenAI key in a bundle', fake.openai(), 'critical'),
@@ -56,6 +60,74 @@ export const cases: CheckCase[] = [
     site: bundle(`a("${inlineKey}");b("${inlineKey}");`),
     expect: 'fail',
     failSeverities: ['critical'],
+  },
+  leaking('Stripe restricted key in a bundle', fake.stripeRestricted(), 'critical'),
+  leaking('Anthropic admin key in a bundle', fake.anthropicAdmin(), 'critical'),
+  leaking('GitHub server token in a bundle', fake.githubServer(), 'critical'),
+  leaking('GitHub fine-grained token in a bundle', fake.githubFineGrained(), 'critical'),
+  {
+    name: 'key after "Bearer " in a request header (the usual AI-generated call)',
+    site: bundle(
+      `fetch("https://api.openai.com/v1/chat/completions",{headers:{Authorization:"Bearer ${bearerKey}"}});`,
+    ),
+    expect: 'fail',
+    failSeverities: ['critical'],
+    mustNotLeak: [bearerKey],
+  },
+  {
+    name: 'Stripe key after "Bearer " in a template literal',
+    site: bundle(`fetch(u,{headers:{Authorization:\`Bearer ${stripeBearer}\`}});`),
+    expect: 'fail',
+    failSeverities: ['critical'],
+  },
+  {
+    name: 'service_role key after "Bearer " (Supabase REST called directly)',
+    site: bundle(
+      `fetch(u,{headers:{apikey:k,Authorization:"Bearer ${fake.supabaseServiceRole()}"}});`,
+    ),
+    expect: 'fail',
+    failSeverities: ['critical'],
+  },
+  {
+    name: 'key inside escaped JSON (Next.js / v0 page data)',
+    site: appSite({
+      head: `<script>self.__next_f.push([1,"{\\"k\\":\\"${rscKey}\\"}"])</script>`,
+    }),
+    expect: 'fail',
+    failSeverities: ['critical'],
+    mustNotLeak: [rscKey],
+  },
+  {
+    name: 'AWS keys inside escaped JSON',
+    site: bundle(
+      `const c=JSON.parse("{\\"accessKeyId\\":\\"${awsId}\\",\\"secretAccessKey\\":\\"${awsSecret}\\"}");`,
+    ),
+    expect: 'fail',
+    failSeverities: ['critical', 'critical'],
+  },
+  {
+    name: 'a key left in a comment is still shipped to every visitor',
+    site: bundle(`// TODO remove: ${commentKey}\nexport const x=1;`),
+    expect: 'fail',
+    failSeverities: ['critical'],
+  },
+  {
+    name: 'reports at most 10 keys',
+    site: bundle(
+      Array.from(
+        { length: 12 },
+        (_, i) => `k${String(i)}("${['sk', 'proj', mixed(48, 20 + i)].join('-')}");`,
+      ).join(''),
+    ),
+    expect: 'fail',
+    failSeverities: Array.from({ length: 10 }, () => 'critical' as const),
+  },
+  {
+    name: 'look-alikes glued to longer identifiers are not keys',
+    site: bundle(
+      `const a="disk_live_${mixed(30, 30)}";const b="mask_test_${mixed(30, 31)}";const c="task-${mixed(40, 32)}";`,
+    ),
+    expect: 'pass',
   },
   {
     name: 'no keys at all',

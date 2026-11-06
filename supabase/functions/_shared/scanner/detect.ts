@@ -1,7 +1,7 @@
 // Works out which AI builder made the app and which backend it talks to, so fix prompts
 // can be tailored and deep checks know what to test. Pure: reads the collected snapshot only.
 
-import { JWT_IN_QUOTES, jwtPayload } from './jwt.ts';
+import { JWT_TOKEN, jwtPayload } from './jwt.ts';
 import type { Backend, Bundle, Platform } from './types.ts';
 
 export interface DetectInput {
@@ -41,7 +41,7 @@ const PLATFORM_RULES: PlatformRule[] = [
 ];
 
 const SUPABASE_URL = /https:\/\/([a-z0-9]{20})\.supabase\.co/;
-const SUPABASE_PUBLISHABLE = /(?<=["'`])sb_publishable_[A-Za-z0-9_-]{20,}/;
+const SUPABASE_PUBLISHABLE = /(?<![A-Za-z0-9_-])sb_publishable_[A-Za-z0-9_-]{20,}/;
 const FIREBASE_PROJECT = /projectId["']?\s*:\s*["']([a-z0-9-]{4,40})["']/;
 
 export function detect(input: DetectInput): { platform: Platform; backend: Backend } {
@@ -85,7 +85,7 @@ function detectBackend(input: DetectInput): Backend {
 
 /** The PUBLIC key only: a JWT whose role is "anon", or a publishable key. Never service_role. */
 function findAnonKey(text: string, ref: string | undefined): string | undefined {
-  for (const match of text.matchAll(JWT_IN_QUOTES)) {
+  for (const match of text.matchAll(JWT_TOKEN)) {
     const payload = jwtPayload(match[0]);
     if (payload?.['role'] === 'anon' && (payload['ref'] === undefined || payload['ref'] === ref)) {
       return match[0];

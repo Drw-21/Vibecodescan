@@ -18,6 +18,6 @@ export function jwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
-/** Candidate JWTs inside quotes in some text. */
-export const JWT_IN_QUOTES =
-  /(?<=["'`])eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g;
+/** Candidate JWTs in some text (not glued to other token characters). */
+export const JWT_TOKEN =
+  /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g;

@@ -12,6 +12,11 @@ All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
   traps; fake secrets assembled at test time.
 - Simulated reference apps (`fixtures/reference-apps/sites.ts`): every app gives exactly its
   written passive results; the insecure app fails and the fixed app scores 100 / A.
+- Independent review fixes: keys after `Bearer `, in template literals, escaped JSON and comments
+  are now found; CSRF cookies, `<meta>` CSPs and duplicated headers no longer cause false alarms;
+  `frame-ancestors *` no longer counts; 429/5xx answers make a check incomplete, not pass;
+  source maps are checked for every bundle; HTML tags are found without page-wide regexes
+  (a milestone 2 regex could hang a scan for minutes on a hostile page).
 - Judgement calls recorded in docs/decisions/0005.
 
 ## 0.2.0 — Milestone 2: Engine core

@@ -42,11 +42,10 @@ export async function resetDatabase(client: pg.Client): Promise<void> {
     drop schema if exists auth cascade;
     drop schema if exists extensions cascade;
     do $$ begin
+      -- Clears this database's grants to the API roles; the roles themselves are shared
+      -- by the whole server and are kept.
       if exists (select 1 from pg_roles where rolname = 'anon') then
         drop owned by anon, authenticated, service_role;
-        drop role anon;
-        drop role authenticated;
-        drop role service_role;
       end if;
     end $$;
     create schema public;

@@ -47,6 +47,11 @@ export const cases: CheckCase[] = [
     expect: 'pass',
   },
   {
+    name: 'false-positive trap: CSRF cookies are meant to be readable (XSRF-TOKEN, csrftoken)',
+    site: withCookies('XSRF-TOKEN=abc; Path=/', 'csrftoken=def; Path=/'),
+    expect: 'pass',
+  },
+  {
     name: 'Supabase auth cookie is read by the browser by design (HttpOnly not required)',
     site: withCookies('sb-abcdefghijklmnopqrst-auth-token=v; Path=/; Secure; SameSite=Lax'),
     expect: 'pass',

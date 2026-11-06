@@ -6,6 +6,8 @@ import { safeEvidence } from '../redact.ts';
 import type { Check, Finding } from '../types.ts';
 
 const SESSION_NAME = /sess|sid|auth|token|jwt|login|remember/i;
+/** CSRF tokens are meant to be read by the page's scripts; they are not login cookies. */
+const CSRF_NAME = /csrf|xsrf/i;
 
 interface Cookie {
   name: string;
@@ -48,7 +50,9 @@ export const cookieFlags: Check = {
     const cookies = ctx.headers
       .getSetCookie()
       .map(parse)
-      .filter((c): c is Cookie => c !== null && SESSION_NAME.test(c.name));
+      .filter(
+        (c): c is Cookie => c !== null && SESSION_NAME.test(c.name) && !CSRF_NAME.test(c.name),
+      );
 
     const findings: Finding[] = [];
     for (const cookie of cookies) {

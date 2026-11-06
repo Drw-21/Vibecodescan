@@ -6,9 +6,19 @@
 --   auth.users, auth.uid() reading the JWT claims, the `extensions` schema,
 --   and Supabase's default grants of ALL on new public tables to the API roles.
 
-create role anon nologin noinherit;
-create role authenticated nologin noinherit;
-create role service_role nologin noinherit bypassrls;
+-- Roles belong to the whole Postgres server, not one database, so they are created only
+-- if missing (several test databases can share one server).
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin noinherit;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin noinherit;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then
+    create role service_role nologin noinherit bypassrls;
+  end if;
+end $$;
 
 create schema extensions;
 create schema auth;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collect } from '../../../supabase/functions/_shared/scanner/collect.ts';
+import { collect, scriptUrls } from '../../../supabase/functions/_shared/scanner/collect.ts';
 import { createSafeFetch } from '../../../supabase/functions/_shared/scanner/safeFetch.ts';
 import { fakeNet, type FakeRoute } from './fakes.ts';
 
@@ -207,5 +207,15 @@ describe('collect', () => {
     });
     expect(result.bundles).toEqual([]);
     expect(result.bundlesComplete).toBe(false);
+  });
+
+  it('stays fast on a hostile 2 MB page full of unclosed tags', () => {
+    const base = new URL('https://app.example.test/');
+    for (const filler of ['<script ', '<link rel=', '<script src="a" '.repeat(1)]) {
+      const html = filler.repeat(Math.ceil((2 * 1024 * 1024) / filler.length));
+      const started = Date.now();
+      scriptUrls(html, base);
+      expect(Date.now() - started).toBeLessThan(2000);
+    }
   });
 });

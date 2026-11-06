@@ -40,6 +40,23 @@ export const cases: CheckCase[] = [
     evidence: ['/assets/index-a1b2c3d4.js'],
   },
   {
+    name: 'a map published only for the 7th bundle is still found',
+    site: appSite({
+      bundles: Object.fromEntries(
+        Array.from({ length: 7 }, (_, i) => [`/assets/chunk-${String(i)}.js`, `c${String(i)}()`]),
+      ),
+      routes: { '/assets/chunk-6.js.map': json(MAP) },
+    }),
+    expect: 'fail',
+    failSeverities: ['medium'],
+    evidence: ['/assets/chunk-6.js.map'],
+  },
+  {
+    name: 'fail safe: the server is overloaded (503) for .map requests',
+    site: appSite({ routes: { 'https://app.example.test/*': { status: 503, body: 'busy' } } }),
+    expect: 'incomplete',
+  },
+  {
     name: 'no maps published',
     site: appSite(),
     expect: 'pass',
