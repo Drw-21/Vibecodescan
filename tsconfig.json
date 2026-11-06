@@ -14,7 +14,8 @@
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["tests/**/*.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": ["tests/**/*.ts", "supabase/functions/**/*.ts", "vitest.config.ts", "eslint.config.js"]
 }
