@@ -2,7 +2,19 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
-## 0.2.0 — Milestone 2: Engine core (unreleased)
+## 0.3.0 — Milestone 3: Passive checks (unreleased)
+
+- Seven passive checks, one file each in `scanner/checks/`: `secret-in-bundle`, `exposed-files`,
+  `source-maps`, `security-headers`, `https`, `cookie-flags`, `platform-detect`; all `live`.
+- `detect.ts` (builder and backend), `context.ts`, `redact.ts` (first 4 + last 4, paths only,
+  no secret-length runs), `jwt.ts`.
+- Fixtures: whole fake sites per check (`fixtures/checks/`) with pass, fail and false-positive
+  traps; fake secrets assembled at test time.
+- Simulated reference apps (`fixtures/reference-apps/sites.ts`): every app gives exactly its
+  written passive results; the insecure app fails and the fixed app scores 100 / A.
+- Judgement calls recorded in docs/decisions/0005.
+
+## 0.2.0 — Milestone 2: Engine core
 
 - `types.ts`: the `Check` / `Finding` / `ScanContext` contract from the spec, plus `bundlesComplete`
   so a check can report "incomplete" when not every bundle was loaded.
