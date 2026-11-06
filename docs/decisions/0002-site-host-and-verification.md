@@ -8,7 +8,7 @@ someone else's (threat model: "Verification bypass").
 
 - Users get column-level `insert`/`update` grants on `url` and `monitored` only.
   `verified_at`, `verify_token`, `host`, `user_id` and `platform` cannot be written from the browser.
-- A trigger derives `host` from `url` (lower-case, userinfo and port stripped, trailing dot removed).
+- A trigger derives `host` from `url` (lower-case, port stripped; userinfo, trailing dots and numeric hosts are refused).
 - If the host changes, the trigger clears `verified_at` and issues a fresh 32-byte token
   that expires in 7 days.
 - Users insert sites straight through the API, so the database itself validates `url`, strictly:

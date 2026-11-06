@@ -200,7 +200,7 @@ describe('sites', () => {
         verify_token: string;
       }>(
         user(w.a),
-        `insert into public.sites (url) values ('https://New.Example.test./path?q=1')
+        `insert into public.sites (url) values ('https://New.Example.test/path?q=1')
          returning user_id, host, verified_at, verify_token`,
       );
       expect(rows[0]).toMatchObject({ user_id: w.a, host: 'new.example.test', verified_at: null });
@@ -317,6 +317,11 @@ describe('sites', () => {
         'https://victim.test/path with space',
         'https://victim.test\\.evil.test/',
         'https://bücher.test/',
+        'https://victim.test./',
+        'https://2130706433/',
+        'https://0x7f000001/',
+        'https://127.0.0.1/',
+        'https://a.test.0x7f/',
       ];
       for (const url of bad) {
         // Rejected either by the host trigger (22023) or the url check constraint (23514).
@@ -339,7 +344,9 @@ describe('sites', () => {
         'https://App.Example.test',
         'http://port.example.test:8080/x?y=1#z',
         'https://xn--bcher-kva.test/',
-        'https://a-b.example.test./path',
+        'https://a-b.example.test/path',
+        'https://123abc.example.test/',
+        'https://app.example.test2/',
       ];
       for (const url of good) {
         const { rows } = await tx.as<{ host: string }>(
@@ -347,7 +354,7 @@ describe('sites', () => {
           'insert into public.sites (url) values ($1) returning host',
           [url],
         );
-        expect(rows[0]?.host, url).toBe(new URL(url).hostname.replace(/\.$/, ''));
+        expect(rows[0]?.host, url).toBe(new URL(url).hostname);
       }
     }));
 
@@ -450,6 +457,8 @@ describe('findings', () => {
         'Strict-Transport-Security',
         'user_notification_preferences',
         '/assets/index-BxYz1234.js.map',
+        'abcdefghijklmnopqrst.supabase.co',
+        'main.3f2a9c8b7d6e5f4a3b2c.js.map',
       ]) {
         await tx.as(service, 'update public.findings set evidence_redacted = $1 where id = $2', [
           evidence,

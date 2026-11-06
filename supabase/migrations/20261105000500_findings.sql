@@ -2,7 +2,8 @@
 -- evidence_redacted holds at most the first 4 and last 4 characters of a secret
 -- (e.g. "sk_l…x9Q2"). The check below is a backstop against a redaction bug: real
 -- secrets contain a long unbroken run of letters/digits (Stripe, OpenAI, Anthropic,
--- GitHub, AWS keys, JWTs), so any run of 20 or more such characters is refused.
+-- GitHub, AWS keys, JWTs), so any run of 24 or more such characters is refused. Shorter runs
+-- stay allowed: Supabase project ids and bundle content hashes are 20 characters.
 
 create table public.findings (
   id                uuid primary key default gen_random_uuid(),
@@ -14,7 +15,7 @@ create table public.findings (
   explanation       text not null check (char_length(explanation) <= 4000),
   evidence_redacted text check (
                       char_length(evidence_redacted) <= 200
-                      and evidence_redacted !~ '[A-Za-z0-9+/=]{20,}'
+                      and evidence_redacted !~ '[A-Za-z0-9+/=]{24,}'
                     ),
   fix_prompt        text check (char_length(fix_prompt) <= 8000),
   created_at        timestamptz not null default now()

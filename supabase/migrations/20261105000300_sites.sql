@@ -19,6 +19,10 @@ create table public.sites (
                               char_length(url) <= 2048
                               and url ~ '^[hH][tT][tT][pP][sS]?://[A-Za-z0-9.-]+(:[0-9]{1,5})?([/?#].*)?$'
                               and url !~ '[[:space:][:cntrl:]\\]'
+                              -- no trailing dot, and the last label must not be numeric: new URL()
+                              -- would rewrite "2130706433" or "0x7f000001" into an IP address
+                              and url !~ '^[a-zA-Z]+://[A-Za-z0-9.-]*\.(:|/|\?|#|$)'
+                              and url !~ '^[a-zA-Z]+://([A-Za-z0-9-]+\.)*(0[xX][0-9a-fA-F]*|[0-9]+)(:|/|\?|#|$)'
                             ),
   host                    text not null,
   platform                text not null default 'unknown'
@@ -68,10 +72,9 @@ as $$
 declare
   derived text;
 begin
-  -- scheme://host[:port]... -> lower-case host, trailing dot removed.
+  -- scheme://host[:port]... -> lower-case host.
   -- The url check constraint guarantees the authority has no userinfo or odd characters.
   derived := lower(substring(new.url from '^[a-zA-Z]+://([A-Za-z0-9.-]+)'));
-  derived := rtrim(derived, '.');
   if derived is null or derived = '' then
     raise exception 'sites.url has no host' using errcode = '22023';
   end if;
