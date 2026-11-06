@@ -21,6 +21,7 @@ const inlineKey = fake.openai();
 const bearerKey = ['sk', 'proj', mixed(48, 40)].join('-');
 const stripeBearer = fake.stripeLive();
 const rscKey = ['sk', 'proj', mixed(48, 41)].join('-');
+const turkishKey = ['sk', 'proj', mixed(48, 43)].join('-');
 const commentKey = ['sk', 'proj', mixed(48, 42)].join('-');
 
 export const cases: CheckCase[] = [
@@ -128,6 +129,15 @@ export const cases: CheckCase[] = [
       `const a="disk_live_${mixed(30, 30)}";const b="mask_test_${mixed(30, 31)}";const c="task-${mixed(40, 32)}";`,
     ),
     expect: 'pass',
+  },
+  {
+    name: 'key in the bundle of a Turkish-language page (İ in the title)',
+    site: appSite({
+      head: `<title>${'İstanbul '.repeat(30)}</title>`,
+      bundles: { '/assets/index-a1b2c3d4.js': `k("${turkishKey}")` },
+    }),
+    expect: 'fail',
+    failSeverities: ['critical'],
   },
   {
     name: 'no keys at all',

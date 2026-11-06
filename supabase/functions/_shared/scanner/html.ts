@@ -5,15 +5,24 @@
 const MAX_TAG_LENGTH = 4096;
 const MAX_TAGS = 2000;
 
+export interface TagScan {
+  tags: string[];
+  /** False if the page had more matching tags than we read: anything after is unseen. */
+  complete: boolean;
+}
+
 /** The text of each `<name …>` tag, in order (case-insensitive name). */
-export function findTags(html: string, name: string): string[] {
-  const lower = html.toLowerCase();
+export function findTags(html: string, name: string): TagScan {
+  // Lower-case ASCII letters only: full Unicode lower-casing can change the length
+  // (e.g. Turkish "İ" becomes two characters) and break the positions we cut from `html`.
+  const lower = html.replace(/[A-Z]+/g, (s) => s.toLowerCase());
   const needle = `<${name.toLowerCase()}`;
   const tags: string[] = [];
   let from = 0;
-  while (tags.length < MAX_TAGS) {
+  for (;;) {
     const start = lower.indexOf(needle, from);
     if (start === -1) break;
+    if (tags.length >= MAX_TAGS) return { tags, complete: false };
     const after = lower.charAt(start + needle.length);
     from = start + needle.length;
     // "<scripts" or "<linkx" are other tags.
@@ -24,7 +33,7 @@ export function findTags(html: string, name: string): string[] {
     if (end === -1) break;
     from = end + 1;
   }
-  return tags;
+  return { tags, complete: true };
 }
 
 /** Value of one attribute in a single tag, quoted or not. */

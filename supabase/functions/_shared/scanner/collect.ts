@@ -39,8 +39,9 @@ export async function collect(
   const url = new URL(page.url);
   const html = page.body;
 
-  const candidates = scriptUrls(html, url);
-  let complete = candidates.length <= limits.maxBundles && !page.truncated;
+  const found = scriptUrls(html, url);
+  const candidates = found.urls;
+  let complete = found.complete && candidates.length <= limits.maxBundles && !page.truncated;
   const queue = candidates.slice(0, limits.maxBundles);
 
   let remaining = limits.maxTotalBytes - encoder.encode(html).byteLength;
@@ -97,14 +98,19 @@ export async function collect(
   return { url, html, headers: page.headers, bundles, bundlesComplete: complete };
 }
 
-/** Same-host script URLs referenced by the page, in order, without duplicates. */
-export function scriptUrls(html: string, base: URL): string[] {
+/**
+ * Same-host script URLs referenced by the page, in order, without duplicates.
+ * `complete` is false if the page had too many tags to read them all.
+ */
+export function scriptUrls(html: string, base: URL): { urls: string[]; complete: boolean } {
   const raw: string[] = [];
-  for (const tag of findTags(html, 'script')) {
+  const scripts = findTags(html, 'script');
+  const links = findTags(html, 'link');
+  for (const tag of scripts.tags) {
     const src = attribute(tag, 'src');
     if (src !== undefined) raw.push(src);
   }
-  for (const tag of findTags(html, 'link')) {
+  for (const tag of links.tags) {
     const rel = (attribute(tag, 'rel') ?? '').toLowerCase().split(/\s+/);
     const as = (attribute(tag, 'as') ?? '').toLowerCase();
     const href = attribute(tag, 'href');
@@ -133,7 +139,7 @@ export function scriptUrls(html: string, base: URL): string[] {
       out.push(resolved.href);
     }
   }
-  return out;
+  return { urls: out, complete: scripts.complete && links.complete };
 }
 
 function decodeEntities(text: string): string {

@@ -22,7 +22,7 @@ const first = (h: Headers, name: string): string =>
 
 /** A CSP can also be set in the page itself; it protects scripts just the same. */
 function metaCsp(html: string): string {
-  for (const tag of findTags(html, 'meta')) {
+  for (const tag of findTags(html, 'meta').tags) {
     if ((attribute(tag, 'http-equiv') ?? '').toLowerCase() === 'content-security-policy') {
       return (attribute(tag, 'content') ?? '').trim();
     }
