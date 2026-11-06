@@ -135,6 +135,47 @@ describe('collect', () => {
     expect(result.bundlesComplete).toBe(false);
   });
 
+  it('counts bytes read from error pages against the 5 MB total', async () => {
+    let served = 0;
+    const routes: Record<string, FakeRoute> = {};
+    let html = '';
+    for (let i = 0; i < 25; i++) {
+      html += `<script src="/e${String(i)}.js"></script>`;
+      const chunk = new Uint8Array(64 * 1024).fill(120);
+      routes[`https://app.example.test/e${String(i)}.js`] = {
+        status: 404,
+        body: new ReadableStream({
+          pull(controller) {
+            served += chunk.byteLength;
+            controller.enqueue(chunk);
+          },
+        }),
+      };
+    }
+    routes['https://app.example.test/'] = page(html);
+    const { fetch } = setup(routes);
+    const result = await collect('https://app.example.test/', { fetch, limits });
+    expect(served).toBeLessThanOrEqual(limits.maxTotalBytes + 25 * 2 * 64 * 1024);
+    expect(result.bundlesComplete).toBe(false);
+  });
+
+  it('does not wrongly mark an app under 5 MB as incomplete', async () => {
+    const routes: Record<string, FakeRoute> = {};
+    let html = '';
+    const sizes = [1.5, 1.5, 1.5, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01];
+    sizes.forEach((mb, i) => {
+      html += `<script src="/s${String(i)}.js"></script>`;
+      routes[`https://app.example.test/s${String(i)}.js`] = {
+        body: 'x'.repeat(Math.floor(mb * 1024 * 1024)),
+      };
+    });
+    routes['https://app.example.test/'] = page(html);
+    const { fetch } = setup(routes);
+    const result = await collect('https://app.example.test/', { fetch, limits });
+    expect(result.bundles).toHaveLength(10);
+    expect(result.bundlesComplete).toBe(true);
+  });
+
   it('marks the set incomplete when a bundle fails to load', async () => {
     const { fetch } = setup({
       'https://app.example.test/': page(

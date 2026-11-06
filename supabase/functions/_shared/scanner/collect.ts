@@ -43,6 +43,7 @@ export async function collect(
   const queue = candidates.slice(0, limits.maxBundles);
 
   let remaining = limits.maxTotalBytes - encoder.encode(html).byteLength;
+  let inFlight = 0;
   const loaded = new Map<string, string>();
 
   const worker = async (): Promise<void> => {
@@ -51,32 +52,36 @@ export async function collect(
         complete = false;
         return;
       }
-      if (remaining <= 0) {
-        // Budget is spent for now; another download may still refund some. Leave it queued.
+      // While other downloads are running, wait for their refunds rather than start one
+      // with less than a full share (which would cut a normal bundle and wrongly mark
+      // the set incomplete). The last download running takes whatever budget is left.
+      if (remaining <= 0 || (remaining < limits.maxBytesPerBundle && inFlight > 0)) {
         queue.unshift(next);
         return;
       }
       // Reserve this bundle's share BEFORE fetching, so parallel downloads can never
-      // read more than the total budget between them; refund what was not used.
+      // read more than the total budget between them; refund only what was not read.
       const reserved = Math.min(remaining, limits.maxBytesPerBundle);
       remaining -= reserved;
-      let used = reserved;
+      inFlight += 1;
+      let used = reserved; // if the request fails part-way we cannot know, so assume all
       try {
         const res = await fetch(next, { signal: deadline, maxBytes: reserved });
+        const bytes = encoder.encode(res.body);
+        // Bytes of an error page were still read, so they count against the budget.
+        used = Math.min(bytes.byteLength, reserved);
         if (res.status < 200 || res.status >= 300) {
           complete = false;
-          used = 0;
           continue;
         }
-        const bytes = encoder.encode(res.body);
         const kept =
           bytes.byteLength > reserved ? decoder.decode(bytes.subarray(0, reserved)) : res.body;
         if (res.truncated || kept !== res.body) complete = false;
-        used = Math.min(bytes.byteLength, reserved);
         if (kept.length > 0) loaded.set(next, kept);
       } catch {
         complete = false;
       } finally {
+        inFlight -= 1;
         remaining += reserved - used;
       }
     }
