@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collect } from '../../../supabase/functions/_shared/scanner/collect.ts';
+import { collect, scriptUrls } from '../../../supabase/functions/_shared/scanner/collect.ts';
 import { createSafeFetch } from '../../../supabase/functions/_shared/scanner/safeFetch.ts';
 import { fakeNet, type FakeRoute } from './fakes.ts';
 
@@ -207,5 +207,28 @@ describe('collect', () => {
     });
     expect(result.bundles).toEqual([]);
     expect(result.bundlesComplete).toBe(false);
+  });
+
+  it('finds scripts on pages whose text changes length when lower-cased (Turkish İ)', () => {
+    const html = `<html><head><title>${'İstanbul '.repeat(30)}</title><script type="module" src="/assets/index-abc.js"></script></head></html>`;
+    expect(scriptUrls(html, new URL('https://app.example.test/'))).toEqual({
+      urls: ['https://app.example.test/assets/index-abc.js'],
+      complete: true,
+    });
+  });
+
+  it('marks the set incomplete when the page has more tags than we read', () => {
+    const html = '<script>x()</script>'.repeat(2001) + '<script src="/late.js"></script>';
+    expect(scriptUrls(html, new URL('https://app.example.test/')).complete).toBe(false);
+  });
+
+  it('stays fast on a hostile 2 MB page full of unclosed tags', () => {
+    const base = new URL('https://app.example.test/');
+    for (const filler of ['<script ', '<link rel=', '<script src="a" '.repeat(1)]) {
+      const html = filler.repeat(Math.ceil((2 * 1024 * 1024) / filler.length));
+      const started = Date.now();
+      scriptUrls(html, base);
+      expect(Date.now() - started).toBeLessThan(2000);
+    }
   });
 });

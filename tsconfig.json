@@ -17,5 +17,11 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["tests/**/*.ts", "supabase/functions/**/*.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": [
+    "tests/**/*.ts",
+    "supabase/functions/**/*.ts",
+    "fixtures/**/*.ts",
+    "vitest.config.ts",
+    "eslint.config.js"
+  ]
 }

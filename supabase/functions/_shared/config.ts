@@ -44,7 +44,14 @@ export const RUNNER = {
 export type CheckMode = 'live' | 'shadow' | 'off';
 
 export const CHECK_MODES: Readonly<Record<string, CheckMode>> = {
-  // Checks are added here, switched on, in milestones 3 and 6.
+  'secret-in-bundle': 'live',
+  'exposed-files': 'live',
+  'source-maps': 'live',
+  'security-headers': 'live',
+  https: 'live',
+  'cookie-flags': 'live',
+  'platform-detect': 'live',
+  // Deep checks (supabase-public-tables, firebase-open-rules) arrive in milestone 6.
 };
 
 /** Points lost per failed finding (spec: "Scoring and fix prompts"). */
