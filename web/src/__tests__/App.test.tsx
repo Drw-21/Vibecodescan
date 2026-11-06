@@ -83,4 +83,55 @@ describe('free scan flow', () => {
     );
     expect(screen.getByRole('button', { name: 'Scan my app' })).toBeTruthy();
   });
+
+  it('keeps the address after an error, so the founder can see what was wrong', async () => {
+    render(
+      <App
+        env={env}
+        fetchImpl={respond(400, {
+          error: 'invalid_url',
+          message: 'That does not look like a public website address.',
+        })}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Your app’s address'), {
+      target: { value: 'localhost' },
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.click(screen.getByRole('button', { name: 'Scan my app' }));
+    await screen.findByRole('alert');
+    expect(screen.getByLabelText<HTMLInputElement>('Your app’s address').value).toBe('localhost');
+  });
+
+  it('moves focus to the new screen’s heading', async () => {
+    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    fireEvent.change(screen.getByLabelText('Your app’s address'), {
+      target: { value: 'myapp.lovable.app' },
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.click(screen.getByRole('button', { name: 'Scan my app' }));
+    const heading = await screen.findByRole(
+      'heading',
+      { name: 'myapp.lovable.app' },
+      { timeout: 3000 },
+    );
+    expect(document.activeElement).toBe(heading);
+  });
+
+  it('tells the founder when the human check cannot load, instead of leaving them stuck', async () => {
+    window.turnstile = {
+      render: (_el, options) => {
+        options['error-callback']();
+        return 'widget-1';
+      },
+      remove: () => undefined,
+    };
+    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/could not load/);
+  });
+
+  it('tells the founder when the site was built without a human-check key', async () => {
+    render(<App env={{ ...env, turnstileSiteKey: '' }} fetchImpl={respond(200, SUMMARY)} />);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/could not load/);
+  });
 });

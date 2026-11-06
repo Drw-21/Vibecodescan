@@ -21,7 +21,7 @@ export function FreeReport({
   return (
     <section aria-labelledby="report-title" className="space-y-6">
       <div className="space-y-4 rounded-card bg-surface p-6 text-center shadow-card">
-        <h1 id="report-title" className="m-0 break-all text-22 font-semibold">
+        <h1 id="report-title" tabIndex={-1} className="m-0 break-all text-22 font-semibold">
           {host}
         </h1>
         <GradeRing grade={summary.grade} score={summary.score} partial={summary.partial} />
@@ -44,9 +44,9 @@ export function FreeReport({
         <div className="rounded-card bg-surface shadow-card">
           <h2 className="m-0 px-4 pt-4 text-17 font-semibold">Top issues</h2>
           <ol className="m-0 list-none p-0">
-            {summary.topIssues.map((title) => (
+            {summary.topIssues.map((title, i) => (
               <li
-                key={title}
+                key={`${String(i)}-${title}`}
                 className="border-b border-separator px-4 py-3 text-17 last:border-b-0"
               >
                 {title}
@@ -105,8 +105,8 @@ export function FullReport({
           <ul className="m-0 list-none p-0">
             {findings
               .filter((f) => f.severity === s)
-              .map((f) => (
-                <FindingRow key={f.title} finding={f} />
+              .map((f, i) => (
+                <FindingRow key={`${String(i)}-${f.title}`} finding={f} />
               ))}
           </ul>
         </div>

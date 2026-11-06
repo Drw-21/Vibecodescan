@@ -11,7 +11,7 @@ export function Button({
   const look =
     variant === 'primary'
       ? 'bg-accent text-on-accent hover:opacity-90 disabled:opacity-50'
-      : 'bg-transparent text-accent hover:bg-surface border border-separator';
+      : 'bg-transparent text-accent hover:bg-surface border border-field';
   return (
     <button
       type="button"

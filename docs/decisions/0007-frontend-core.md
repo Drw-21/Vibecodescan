@@ -27,5 +27,13 @@ free scan, in light and dark mode, on phone and desktop.
   Chromium through a whole free scan at 375 px and 1280 px, light and dark, keyboard only, checking
   for sideways scrolling and tap targets under 44 px. The scanner API and Turnstile are stand-ins.
 
+- **Review fixes:** the form tells the visitor when the human check cannot load (instead of
+  silently refusing to submit); the build fails if a `VITE_` value is missing; `.env` is read
+  from the repo root; the typed address survives an error; focus moves to each new screen's
+  heading; field and outlined-button borders meet 3:1 contrast; the scan request gives up after
+  90 seconds; the grade ring uses the accent colour (severity colours are for severity only); the
+  browser test applies the production CSP from `_headers` and fails on any violation, and covers
+  the error path and "Scan another app".
+
 **Consequences.** Signed-in scans (202 + watching the row) are handled by the server already; the
 screens for them come with accounts in milestone 6.

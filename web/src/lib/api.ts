@@ -29,6 +29,10 @@ export type ScanOutcome =
   { kind: 'done'; summary: FreeSummary } | { kind: 'error'; code: string; message: string };
 
 const NETWORK_MESSAGE = 'We could not reach our scanner. Check your connection and try again.';
+const TIMEOUT_MESSAGE = 'The scan took too long to answer. Please try again in a few minutes.';
+
+/** The server stops a scan at 55 seconds; give up a little after that. */
+export const REQUEST_TIMEOUT_MS = 90_000;
 
 export async function createScan(
   env: PublicEnv,
@@ -46,8 +50,12 @@ export async function createScan(
         authorization: `Bearer ${env.supabaseAnonKey}`,
       },
       body: JSON.stringify({ url, turnstileToken }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      return { kind: 'error', code: 'timeout', message: TIMEOUT_MESSAGE };
+    }
     return { kind: 'error', code: 'network', message: NETWORK_MESSAGE };
   }
 

@@ -22,17 +22,24 @@ const TRUST = [
 export function Landing({
   siteKey,
   error,
+  initialUrl,
   onScan,
 }: {
   siteKey: string;
   error: string | null;
+  /** What the founder typed last time, so it is still there after an error. */
+  initialUrl: string;
   onScan: (url: string, token: string) => void;
 }) {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState(initialUrl);
   const [token, setToken] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  const [checkFailed, setCheckFailed] = useState(siteKey === '');
   const onToken = useCallback((t: string | null) => {
     setToken(t);
+  }, []);
+  const onCheckError = useCallback(() => {
+    setCheckFailed(true);
   }, []);
 
   const trimmed = url.trim();
@@ -47,7 +54,7 @@ export function Landing({
   return (
     <div className="space-y-12">
       <section aria-labelledby="hero-title" className="space-y-6 pt-6 text-center">
-        <h1 id="hero-title" className="m-0 text-34 font-bold leading-tight">
+        <h1 id="hero-title" tabIndex={-1} className="m-0 text-34 font-bold leading-tight">
           Is the app you built with AI safe?
         </h1>
         <p className="m-0 text-17 text-secondary">
@@ -77,13 +84,20 @@ export function Landing({
             }}
             aria-invalid={touched && trimmed.length === 0}
             aria-describedby={error ? 'scan-error' : undefined}
-            className="block min-h-11 w-full rounded-button border border-separator bg-bg px-3 text-17 text-ink placeholder:text-secondary"
+            className="block min-h-11 w-full rounded-button border border-field bg-surface px-3 text-17 text-ink placeholder:text-secondary"
           />
-          {siteKey !== '' && <Turnstile siteKey={siteKey} onToken={onToken} />}
+          {siteKey !== '' && (
+            <Turnstile siteKey={siteKey} onToken={onToken} onError={onCheckError} />
+          )}
+          {checkFailed && (
+            <p role="alert" className="m-0 text-15 text-critical">
+              The “I am human” check could not load. Please reload the page, or try another browser.
+            </p>
+          )}
           {touched && trimmed.length === 0 && (
             <p className="m-0 text-15 text-critical">Please enter your app’s address.</p>
           )}
-          {touched && trimmed.length > 0 && token === null && (
+          {touched && trimmed.length > 0 && token === null && !checkFailed && (
             <p className="m-0 text-15 text-secondary">
               Please complete the “I am human” check above.
             </p>

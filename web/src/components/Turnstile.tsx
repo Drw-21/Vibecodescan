@@ -5,7 +5,13 @@ import { useEffect, useRef } from 'react';
 interface TurnstileApi {
   render(
     el: HTMLElement,
-    options: { sitekey: string; callback: (token: string) => void; 'expired-callback': () => void },
+    options: {
+      sitekey: string;
+      callback: (token: string) => void;
+      'expired-callback': () => void;
+      'error-callback': () => void;
+      'timeout-callback': () => void;
+    },
   ): string;
   remove(id: string): void;
 }
@@ -39,9 +45,12 @@ function loadScript(): Promise<void> {
 export function Turnstile({
   siteKey,
   onToken,
+  onError,
 }: {
   siteKey: string;
   onToken: (token: string | null) => void;
+  /** The check could not load or run: the visitor must be told, not left stuck. */
+  onError: () => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -49,7 +58,8 @@ export function Turnstile({
     let cancelled = false;
     loadScript()
       .then(() => {
-        if (cancelled || !box.current || !window.turnstile) return;
+        if (cancelled || !box.current) return;
+        if (!window.turnstile) throw new Error('turnstile missing');
         id = window.turnstile.render(box.current, {
           sitekey: siteKey,
           callback: (token) => {
@@ -58,15 +68,24 @@ export function Turnstile({
           'expired-callback': () => {
             onToken(null);
           },
+          'error-callback': () => {
+            onToken(null);
+            onError();
+          },
+          'timeout-callback': () => {
+            onToken(null);
+          },
         });
       })
       .catch(() => {
+        if (cancelled) return;
         onToken(null);
+        onError();
       });
     return () => {
       cancelled = true;
       if (id !== undefined) window.turnstile?.remove(id);
     };
-  }, [siteKey, onToken]);
+  }, [siteKey, onToken, onError]);
   return <div ref={box} className="min-h-[65px]" />;
 }

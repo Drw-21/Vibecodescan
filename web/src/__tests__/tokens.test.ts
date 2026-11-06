@@ -63,6 +63,13 @@ describe.each([
     expect(contrast(t[fg] ?? '', t[bg] ?? '')).toBeGreaterThanOrEqual(4.5);
   });
 
+  it.each([
+    ['field-border', 'surface'],
+    ['field-border', 'bg'],
+  ])('%s on %s is visible enough for a control border (3:1)', (fg, bg) => {
+    expect(contrast(t[fg] ?? '', t[bg] ?? '')).toBeGreaterThanOrEqual(3);
+  });
+
   it('the focus ring stands out from the page (3:1)', () => {
     expect(contrast(t['focus-ring'] ?? '', t['bg'] ?? '')).toBeGreaterThanOrEqual(3);
   });

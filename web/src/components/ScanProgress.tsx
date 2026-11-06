@@ -33,7 +33,7 @@ export function ScanProgress({ host, finished }: { host: string; finished: boole
   return (
     <section aria-labelledby="scanning-title" className="space-y-6">
       <header className="space-y-2 text-center">
-        <h1 id="scanning-title" className="m-0 text-28 font-bold">
+        <h1 id="scanning-title" tabIndex={-1} className="m-0 text-28 font-bold">
           Scanning your app
         </h1>
         <p className="m-0 break-all text-17 text-secondary">{host}</p>

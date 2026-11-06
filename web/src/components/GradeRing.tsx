@@ -1,12 +1,7 @@
 // The hero of the report: the grade inside a ring that fills with the score.
 
-const GRADE_COLOUR: Record<string, string> = {
-  A: 'var(--pass)',
-  B: 'var(--pass)',
-  C: 'var(--medium)',
-  D: 'var(--high)',
-  F: 'var(--critical)',
-};
+// Severity colours are reserved for severity (spec), so the ring uses the accent colour and
+// the grade's meaning is carried by the letter and its word.
 
 const GRADE_WORD: Record<string, string> = {
   A: 'Looking good',
@@ -38,7 +33,7 @@ export function GradeRing({
           cy="70"
           r={radius}
           fill="none"
-          stroke={GRADE_COLOUR[grade] ?? 'var(--low)'}
+          stroke="var(--accent)"
           strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={`${String(filled)} ${String(circumference)}`}

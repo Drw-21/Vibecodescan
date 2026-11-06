@@ -9,6 +9,7 @@
   --color-ink: var(--text);
   --color-secondary: var(--text-secondary);
   --color-separator: var(--separator);
+  --color-field: var(--field-border);
   --color-accent: var(--accent);
   --color-on-accent: var(--accent-text);
   --color-critical: var(--critical);

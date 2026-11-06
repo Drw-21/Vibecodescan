@@ -1,5 +1,6 @@
 // Public configuration only (spec: "the browser only ever holds the public Supabase key").
-// Every value here ends up in the JavaScript sent to visitors.
+// Every value here ends up in the JavaScript sent to visitors. Each one is read by name, so a
+// wrongly named VITE_ variable can never slip into the bundle.
 
 export interface PublicEnv {
   supabaseUrl: string;
@@ -7,10 +8,10 @@ export interface PublicEnv {
   turnstileSiteKey: string;
 }
 
-export function readEnv(source: Record<string, string | undefined> = import.meta.env): PublicEnv {
+export function readEnv(): PublicEnv {
   return {
-    supabaseUrl: source['VITE_SUPABASE_URL'] ?? '',
-    supabaseAnonKey: source['VITE_SUPABASE_ANON_KEY'] ?? '',
-    turnstileSiteKey: source['VITE_TURNSTILE_SITE_KEY'] ?? '',
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL ?? '',
+    supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
+    turnstileSiteKey: import.meta.env.VITE_TURNSTILE_SITE_KEY ?? '',
   };
 }

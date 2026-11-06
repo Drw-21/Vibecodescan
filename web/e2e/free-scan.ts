@@ -6,13 +6,14 @@
 //   SCREENSHOT_DIR=/tmp/shots npm run e2e
 
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type Page, chromium } from 'playwright';
 
 const PORT = 4173;
 const BASE = `http://localhost:${String(PORT)}`;
-const SUPABASE = 'https://proj.supabase.test';
+// Must match the CSP's connect-src (https://*.supabase.co); requests are intercepted below.
+const SUPABASE = 'https://e2e-project.supabase.co';
 const shots = process.env['SCREENSHOT_DIR'];
 
 const SUMMARY = {
@@ -28,6 +29,12 @@ const SUMMARY = {
     '<img src=x onerror="document.title=\'hacked\'">',
   ],
 };
+
+/** The Content-Security-Policy from web/public/_headers, applied as production would. */
+const CSP =
+  /Content-Security-Policy: (.*)/.exec(
+    readFileSync(join('web', 'public', '_headers'), 'utf8'),
+  )?.[1] ?? '';
 
 const FAKE_TURNSTILE = `window.turnstile = { render(el, o) { setTimeout(() => o.callback('e2e-token'), 50); return 'w'; }, remove() {} };`;
 
@@ -109,7 +116,22 @@ async function main() {
           deviceScaleFactor: 2,
         });
         const page = await context.newPage();
-        const seen = { dialog: false };
+        const seen = { dialog: false, cspViolations: [] as string[] };
+        page.on('console', (m) => {
+          if (/Content Security Policy|Refused to/i.test(m.text()))
+            seen.cspViolations.push(m.text());
+        });
+        page.on('pageerror', (e) => {
+          seen.cspViolations.push(`page error: ${e.message}`);
+        });
+        // Serve our pages with the production security headers (vite preview does not read _headers).
+        await page.route(`${BASE}/**`, async (r) => {
+          const res = await r.fetch();
+          await r.fulfill({
+            response: res,
+            headers: { ...res.headers(), 'content-security-policy': CSP },
+          });
+        });
         page.on('dialog', (d) => {
           seen.dialog = true;
           void d.dismiss();
@@ -119,6 +141,15 @@ async function main() {
         );
         await page.route(`${SUPABASE}/functions/v1/create-scan`, async (r) => {
           const body = r.request().postDataJSON() as { url: string; turnstileToken: string };
+          if (body.url === 'localhost') {
+            return r.fulfill({
+              status: 400,
+              json: {
+                error: 'invalid_url',
+                message: 'That does not look like a public website address.',
+              },
+            });
+          }
           if (body.turnstileToken !== 'e2e-token')
             return r.fulfill({
               status: 403,
@@ -152,6 +183,26 @@ async function main() {
           (await page.locator('main img').count()) > 0
         ) {
           throw new Error(`${label}: scanned text was treated as HTML`);
+        }
+        // Back to the start, then the error path: the message shows and the address stays.
+        await page.getByRole('button', { name: 'Scan another app' }).click();
+        await page.getByRole('heading', { name: 'Is the app you built with AI safe?' }).waitFor();
+        await page.getByLabel('Your app’s address').fill('localhost');
+        await page.waitForTimeout(150);
+        await page.getByRole('button', { name: 'Scan my app' }).click();
+        await page
+          .getByRole('alert')
+          .filter({ hasText: 'public website address' })
+          .waitFor({ timeout: 10_000 });
+        if ((await page.getByLabel('Your app’s address').inputValue()) !== 'localhost') {
+          throw new Error(`${label}: the address was lost after an error`);
+        }
+        await check(page, `${label}-4-error`);
+
+        if (seen.cspViolations.length > 0) {
+          throw new Error(
+            `${label}: Content-Security-Policy violations: ${seen.cspViolations.join(' | ')}`,
+          );
         }
         console.log(`ok  ${label}`);
         await context.close();

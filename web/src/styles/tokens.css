@@ -2,7 +2,7 @@
  * Design tokens (spec: "Frontend: Apple design principles").
  * Neutral greys, one accent (system blue). Severity colours are used ONLY for severity,
  * always next to an icon and a word. Every text/background pair meets WCAG AA
- * (tested in tests/unit/web/tokens.test.ts).
+ * (tested in web/src/__tests__/tokens.test.ts).
  */
 
 :root {
@@ -15,6 +15,8 @@
   --text: #1d1d1f;
   --text-secondary: #5e5e63;
   --separator: #d2d2d7;
+  /* Borders of fields and outlined buttons: at least 3:1 against the page (WCAG 1.4.11) */
+  --field-border: #8a8a8e;
   --accent: #0066cc;
   --accent-text: #ffffff;
   --focus-ring: #0066cc;
@@ -58,6 +60,7 @@
     --text: #f5f5f7;
     --text-secondary: #a1a1a6;
     --separator: #38383a;
+    --field-border: #7c7c80;
     --accent: #2997ff;
     --accent-text: #000000;
     --focus-ring: #2997ff;
