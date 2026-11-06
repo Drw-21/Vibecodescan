@@ -37,6 +37,8 @@ export function Landing({
   const [checkFailed, setCheckFailed] = useState(siteKey === '');
   const onToken = useCallback((t: string | null) => {
     setToken(t);
+    // Turnstile can recover by itself after an error: drop the warning once it does.
+    if (t !== null) setCheckFailed(false);
   }, []);
   const onCheckError = useCallback(() => {
     setCheckFailed(true);

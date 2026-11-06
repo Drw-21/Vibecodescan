@@ -26,8 +26,9 @@ Never copy it anywhere, never put it in Cloudflare, and never paste any key into
 ## Steps
 
 Steps 2 and 4 need a computer with a terminal (Claude Code can do those two for you in a later
-session; it will ask for a Supabase access token through a secure form). Steps 1, 3, 5 and 6 are
-done in web dashboards.
+session; it will ask for a Supabase access token through a secure form, and you type the
+database password into the terminal prompt yourself, never into the chat). Steps 1, 3, 5 and 6
+are done in web dashboards.
 
 1. **Create the Supabase project.** Supabase dashboard → New project. Save the database
    password it asks for in your password manager. Wait until the project is ready.

@@ -134,4 +134,21 @@ describe('free scan flow', () => {
     render(<App env={{ ...env, turnstileSiteKey: '' }} fetchImpl={respond(200, SUMMARY)} />);
     expect((await screen.findByRole('alert')).textContent).toMatch(/could not load/);
   });
+
+  it('drops the warning when the human check recovers by itself', async () => {
+    window.turnstile = {
+      render: (_el, options) => {
+        options['error-callback']();
+        setTimeout(() => {
+          options.callback('recovered-token');
+        }, 10);
+        return 'widget-1';
+      },
+      remove: () => undefined,
+    };
+    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    await screen.findByRole('alert');
+    await new Promise((r) => setTimeout(r, 30));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });
