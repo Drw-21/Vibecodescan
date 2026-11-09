@@ -25,8 +25,17 @@ Never copy it anywhere, never put it in Cloudflare, and never paste any key into
 
 ## Steps
 
-Steps 2 and 4 need a computer with a terminal (Claude Code can do those two for you in a later
-session; it will ask for a Supabase access token through a secure form, and you type the
+**No terminal? Use the Supabase GitHub integration instead of steps 2 and 4.** Supabase →
+Project Settings → Integrations → GitHub → connect `Drw-21/Vibecodescan`, keep the working
+directory at the top of the repository, set the production branch to `main`, and turn on
+deploying to production (leave automatic preview branches off). From then on, every change merged
+into `main` creates or updates the database tables. The integration acts only on changes that
+land on `main` after it was connected. Check Table Editor for the 6 tables (`profiles`, `sites`,
+`scans`, `findings`, `subscriptions`, `billing_events`) and Edge Functions for `create-scan` and
+`run-scan`; if the functions are missing, step 4 is still needed.
+
+Otherwise, steps 2 and 4 need a computer with a terminal (Claude Code can do those two for you in
+a later session; it will ask for a Supabase access token through a secure form, and you type the
 database password into the terminal prompt yourself, never into the chat). Steps 1, 3, 5 and 6
 are done in web dashboards.
 
