@@ -23,6 +23,7 @@
   --color-low-fill: var(--low-fill);
   --color-pass: var(--pass);
   --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
   --text-52: var(--text-52);
   --text-34: var(--text-34);
   --text-28: var(--text-28);
@@ -44,9 +45,26 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
 body {
   margin: 0;
-  background: var(--bg);
+  /* Three soft glows behind everything, fixed so glass surfaces blur them as you scroll. */
+  background:
+    radial-gradient(40rem 32rem at 12% 8%, var(--aura-1), transparent 70%),
+    radial-gradient(36rem 30rem at 92% 22%, var(--aura-2), transparent 70%),
+    radial-gradient(44rem 34rem at 50% 100%, var(--aura-3), transparent 70%), var(--bg);
+  background-attachment: fixed;
   font-size: var(--text-17);
   line-height: 1.47;
 }
@@ -69,5 +87,40 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Frosted glass surface: cards, tiles, panels. */
+@utility glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-highlight);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+}
+
+/* A stronger glass for bars that sit over moving content (the sticky header). */
+@utility glass-bar {
+  background: var(--glass-bg-strong);
+  border-bottom: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+}
+
+/* Browsers without background blur get solid surfaces instead of see-through ones. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-bg: var(--surface);
+    --glass-bg-strong: var(--surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-bar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

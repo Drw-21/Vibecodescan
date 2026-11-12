@@ -97,3 +97,71 @@ describe('our own site headers (public/_headers)', () => {
     expect(csp).not.toContain('unsafe-eval');
   });
 });
+
+// Frosted glass: the colour under a glass surface depends on which glows are behind it. Check
+// text on glass over the plain page and over every combination of glows (worst cases included).
+describe('frosted glass keeps text readable', () => {
+  type Rgba = [number, number, number, number];
+
+  function rgbaTokens(block: string): Record<string, Rgba> {
+    const out: Record<string, Rgba> = {};
+    for (const m of block.matchAll(
+      /--([a-z0-9-]+):\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)\s*;/gi,
+    )) {
+      out[m[1] ?? ''] = [Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5])];
+    }
+    return out;
+  }
+  const hexToRgb = (hex: string): [number, number, number] =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+  const over = (top: Rgba, under: [number, number, number]): [number, number, number] =>
+    [0, 1, 2].map((i) => Math.round((top[i] ?? 0) * top[3] + (under[i] ?? 0) * (1 - top[3]))) as [
+      number,
+      number,
+      number,
+    ];
+  const toHex = (c: [number, number, number]): string =>
+    `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+
+  const lightBlock = css.slice(0, css.indexOf('@media (prefers-color-scheme: dark)'));
+  const darkBlock = css.slice(darkStart, css.indexOf('@media (prefers-reduced-motion', darkStart));
+  const lightRgba = rgbaTokens(lightBlock);
+  const darkRgba = { ...lightRgba, ...rgbaTokens(darkBlock) };
+
+  describe.each([
+    ['light', light, lightRgba],
+    ['dark', dark, darkRgba],
+  ])('%s theme', (_name, hex, rgba) => {
+    const auras = ['aura-1', 'aura-2', 'aura-3']
+      .map((k) => rgba[k])
+      .filter((a): a is Rgba => a !== undefined);
+    const glass = rgba['glass-bg'];
+    const base = hexToRgb(hex['bg'] ?? '#000000');
+    // Every subset of glows stacked over the page colour.
+    const backdrops: [number, number, number][] = [];
+    for (let mask = 0; mask < 1 << auras.length; mask++) {
+      let c = base;
+      auras.forEach((a, i) => {
+        if (mask & (1 << i)) c = over(a, c);
+      });
+      backdrops.push(c);
+    }
+
+    it('defines the glass and glow tokens', () => {
+      expect(auras).toHaveLength(3);
+      expect(glass).toBeDefined();
+    });
+
+    it.each(['text', 'text-secondary', 'accent', 'low'])(
+      '%s on glass meets AA (4.5:1) over every glow',
+      (fg) => {
+        for (const b of backdrops) {
+          const surface = toHex(over(glass ?? [0, 0, 0, 1], b));
+          expect(contrast(hex[fg] ?? '', surface), `${fg} on ${surface}`).toBeGreaterThanOrEqual(
+            4.5,
+          );
+        }
+      },
+    );
+  });
+});
