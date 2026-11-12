@@ -22,6 +22,13 @@
   /* Flat accent tint for icon chips and calm panels (no decorative gradients) */
   --accent-soft: #ecebfd;
   --focus-ring: #4f46e5;
+  /* Deep ink panels and pill buttons that stand out from the light page */
+  --contrast-bg: #1e1b3a;
+  --contrast-text: #ffffff;
+  --contrast-secondary: #c9c7e6;
+  /* The soft lilac wash of the hero panel */
+  --hero-from: #e4e0ff;
+  --hero-to: #f7f6fc;
 
   /* Severity: ink = text/icon colour on --surface, fill = soft badge background */
   --critical: #c1000f;
@@ -34,8 +41,10 @@
   --low-fill: #ececf0;
   --pass: #1b7a35;
 
-  /* Type scale: 34 / 28 / 22 / 17 (body) / 15 / 13, plus 52 for the desktop hero only */
+  /* Type scale: 34 / 28 / 22 / 17 (body) / 15 / 13, plus 44 / 52 / 64 for desktop headlines */
+  --text-64: 4rem;
   --text-52: 3.25rem;
+  --text-44: 2.75rem;
   /* Geist (SIL OFL), served from our own site: no font requests to third parties. */
   --font-sans:
     'Geist Variable', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto,
@@ -51,6 +60,7 @@
   /* Shape and depth */
   --radius-card: 16px;
   --radius-button: 8px;
+  --radius-panel: 28px;
   --shadow-card: 0 1px 2px rgb(20 21 28 / 0.04), 0 8px 24px rgb(20 21 28 / 0.06);
 
   /* Motion: short and purposeful */
@@ -86,6 +96,11 @@
     --accent-text: #14151c;
     --accent-soft: #24233f;
     --focus-ring: #a5a2fb;
+    --contrast-bg: #2b2852;
+    --contrast-text: #f3f4f7;
+    --contrast-secondary: #c3c1e0;
+    --hero-from: #1d1a40;
+    --hero-to: #101118;
 
     --critical: #ff6961;
     --critical-fill: #3b1715;

@@ -1,5 +1,4 @@
 // Everything the landing page says, in one place.
-// Text in [square brackets] is a placeholder: replace it with real content before launch.
 // Every button label starts with a verb (tested).
 
 import type { IconName } from '../components/Icon';
@@ -8,29 +7,8 @@ export const PRODUCT = 'Scanner';
 export const BUILDERS = ['Lovable', 'Bolt', 'Replit', 'v0', 'Cursor'];
 
 // --- Social proof -------------------------------------------------------------------------
-export const PROOF_HEADING = '[Founders who built with AI already check their apps with Scanner]';
-export const PROOF_STATS: { value: string; label: string }[] = [
-  { value: '[X,XXX]', label: '[apps scanned]' },
-  { value: '[XXX]', label: '[private keys found before attackers did]' },
-  { value: '[X.X/5]', label: '[average rating from founders]' },
-];
-export const TESTIMONIALS: { quote: string; name: string; role: string }[] = [
-  {
-    quote: '[Short quote about finding a leaked key or open table before launch.]',
-    name: '[Customer name]',
-    role: '[Role, Company]',
-  },
-  {
-    quote: '[Short quote about how easy the fix prompts were to paste into their builder.]',
-    name: '[Customer name]',
-    role: '[Role, Company]',
-  },
-  {
-    quote: '[Short quote about peace of mind from weekly rescans.]',
-    name: '[Customer name]',
-    role: '[Role, Company]',
-  },
-];
+// Left out on purpose until there are real numbers and real customer quotes (owner's decision):
+// no invented stats or testimonials on the live site.
 
 // --- Problem: what founders struggle with today, in their own words --------------------------
 export const PROBLEM = {

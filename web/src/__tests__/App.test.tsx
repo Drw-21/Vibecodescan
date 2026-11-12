@@ -37,16 +37,43 @@ function respond(status: number, body: unknown): typeof fetch {
   return () => Promise.resolve(Response.json(body, { status }));
 }
 
+describe('pages', () => {
+  it('opens on the landing page, which links to the scan page instead of holding the form', () => {
+    render(<App path="/" env={env} fetchImpl={respond(200, SUMMARY)} />);
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Is the app you built with AI safe?' }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Your app’s address')).toBeNull();
+    const links = screen.getAllByRole('link', { name: /Scan my app/ });
+    expect(links.length).toBeGreaterThan(0);
+    for (const l of links) expect(l.getAttribute('href')).toBe('/scan');
+  });
+
+  it('shows the scan form on /scan, with or without a trailing slash', () => {
+    for (const path of ['/scan', '/scan/']) {
+      render(<App path={path} env={env} fetchImpl={respond(200, SUMMARY)} />);
+      expect(screen.getByRole('heading', { level: 1, name: 'Scan your app' })).toBeTruthy();
+      expect(screen.getByLabelText('Your app’s address')).toBeTruthy();
+      cleanup();
+    }
+  });
+
+  it('treats any other address as the landing page', () => {
+    render(<App path="/nothing-here" env={env} fetchImpl={respond(200, SUMMARY)} />);
+    expect(screen.queryByLabelText('Your app’s address')).toBeNull();
+  });
+});
+
 describe('free scan flow', () => {
   it('asks for an address before scanning', async () => {
-    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    render(<App path="/scan" env={env} fetchImpl={respond(200, SUMMARY)} />);
     await screen.findByRole('button', { name: 'Scan my app' });
     fireEvent.click(screen.getByRole('button', { name: 'Scan my app' }));
     expect(screen.getByText('Please enter your app’s address.')).toBeTruthy();
   });
 
   it('goes from the address to the progress checklist to the report', async () => {
-    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    render(<App path="/scan" env={env} fetchImpl={respond(200, SUMMARY)} />);
     fireEvent.change(screen.getByLabelText('Your app’s address'), {
       target: { value: 'https://myapp.lovable.app/' },
     });
@@ -66,6 +93,7 @@ describe('free scan flow', () => {
   it('shows the server’s message and lets the founder try again', async () => {
     render(
       <App
+        path="/scan"
         env={env}
         fetchImpl={respond(429, {
           error: 'daily_limit',
@@ -87,6 +115,7 @@ describe('free scan flow', () => {
   it('keeps the address after an error, so the founder can see what was wrong', async () => {
     render(
       <App
+        path="/scan"
         env={env}
         fetchImpl={respond(400, {
           error: 'invalid_url',
@@ -104,7 +133,7 @@ describe('free scan flow', () => {
   });
 
   it('moves focus to the new screen’s heading', async () => {
-    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    render(<App path="/scan" env={env} fetchImpl={respond(200, SUMMARY)} />);
     fireEvent.change(screen.getByLabelText('Your app’s address'), {
       target: { value: 'myapp.lovable.app' },
     });
@@ -126,12 +155,14 @@ describe('free scan flow', () => {
       },
       remove: () => undefined,
     };
-    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    render(<App path="/scan" env={env} fetchImpl={respond(200, SUMMARY)} />);
     expect((await screen.findByRole('alert')).textContent).toMatch(/could not load/);
   });
 
   it('tells the founder when the site was built without a human-check key', async () => {
-    render(<App env={{ ...env, turnstileSiteKey: '' }} fetchImpl={respond(200, SUMMARY)} />);
+    render(
+      <App path="/scan" env={{ ...env, turnstileSiteKey: '' }} fetchImpl={respond(200, SUMMARY)} />,
+    );
     expect((await screen.findByRole('alert')).textContent).toMatch(/could not load/);
   });
 
@@ -146,7 +177,7 @@ describe('free scan flow', () => {
       },
       remove: () => undefined,
     };
-    render(<App env={env} fetchImpl={respond(200, SUMMARY)} />);
+    render(<App path="/scan" env={env} fetchImpl={respond(200, SUMMARY)} />);
     await screen.findByRole('alert');
     await new Promise((r) => setTimeout(r, 30));
     expect(screen.queryByRole('alert')).toBeNull();

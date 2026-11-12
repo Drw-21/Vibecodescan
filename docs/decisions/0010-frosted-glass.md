@@ -26,3 +26,9 @@ the spec's design rules say "no decorative gradients".
 
 **Consequences.** Background blur costs some GPU time on low-end phones; glass is limited to
 cards and bars (no blur on large scrolling areas). Severity colours remain for severity only.
+
+**Update (0.6.4).** Two pages instead of one: the landing page at `/` and the free scan at
+`/scan` (owner's request). Routing reads the path once on load; links are ordinary links, so no
+router library is needed (KISS) and Cloudflare's single-page fallback already serves `/scan`.
+Calls to action are pill-shaped; a deep-ink colour (`--contrast-bg`, contrast-tested) is used for
+primary buttons and a few emphasis panels, alongside the indigo accent.

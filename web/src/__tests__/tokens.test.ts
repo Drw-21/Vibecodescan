@@ -53,6 +53,12 @@ const TEXT_PAIRS: [string, string][] = [
   ['low', 'surface'],
   ['low', 'low-fill'],
   ['pass', 'surface'],
+  ['contrast-text', 'contrast-bg'],
+  ['contrast-secondary', 'contrast-bg'],
+  ['text', 'hero-from'],
+  ['text-secondary', 'hero-from'],
+  ['text', 'hero-to'],
+  ['text-secondary', 'hero-to'],
 ];
 
 describe.each([

@@ -1,3 +1,4 @@
+import { ButtonLink } from './Button';
 import { Icon } from './Icon';
 
 /** The brand mark: a shield in the accent colour. */
@@ -12,47 +13,48 @@ export function Logo() {
   );
 }
 
-export function SiteHeader({ showNav }: { showNav: boolean }) {
+const NAV = [
+  { href: '#how', label: 'How it works' },
+  { href: '#checks', label: 'What we check' },
+  { href: '#pricing', label: 'Pricing' },
+  { href: '#faq', label: 'FAQ' },
+];
+
+/**
+ * A floating glass bar. On the landing page the links jump to its sections; on the scan page
+ * they lead back to the landing page, and the "Scan" button is hidden (you are already there).
+ */
+export function SiteHeader({ page }: { page: 'landing' | 'scan' }) {
+  const base = page === 'landing' ? '' : '/';
   return (
-    <header className="glass-bar sticky top-0 z-20">
-      <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4">
+    <header className="sticky top-0 z-20 px-4 pt-3">
+      <div className="glass mx-auto flex min-h-14 max-w-6xl items-center justify-between gap-4 rounded-full py-1.5 pl-4 pr-1.5">
         <a href="/" className="rounded-lg" aria-label="Scanner, home">
           <Logo />
         </a>
-        {showNav && (
-          <nav aria-label="Main" className="flex items-center gap-1 text-15">
+        <nav aria-label="Main" className="hidden items-center gap-1 text-15 md:flex">
+          {NAV.map((n) => (
             <a
-              href="#how"
-              className="hidden min-h-11 items-center rounded-lg px-3 text-secondary hover:text-ink md:inline-flex"
+              key={n.href}
+              href={`${base}${n.href}`}
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-secondary hover:text-ink"
             >
-              How it works
+              {n.label}
             </a>
-            <a
-              href="#checks"
-              className="hidden min-h-11 items-center rounded-lg px-3 text-secondary hover:text-ink md:inline-flex"
-            >
-              What we check
-            </a>
-            <a
-              href="#pricing"
-              className="hidden min-h-11 items-center rounded-lg px-3 text-secondary hover:text-ink md:inline-flex"
-            >
-              Pricing
-            </a>
-            <a
-              href="#faq"
-              className="hidden min-h-11 items-center rounded-lg px-3 text-secondary hover:text-ink md:inline-flex"
-            >
-              FAQ
-            </a>
-            <a
-              href="#scan"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-button bg-accent px-4 font-semibold text-on-accent hover:opacity-90"
-            >
-              Scan free
-              <Icon name="arrow" size={16} />
-            </a>
-          </nav>
+          ))}
+        </nav>
+        {page === 'landing' ? (
+          <ButtonLink href="/scan" className="text-15">
+            Scan my app
+            <Icon name="arrow" size={16} />
+          </ButtonLink>
+        ) : (
+          <a
+            href="/"
+            className="inline-flex min-h-11 items-center rounded-full px-4 text-15 text-secondary hover:text-ink"
+          >
+            Back to home
+          </a>
         )}
       </div>
     </header>
@@ -61,16 +63,16 @@ export function SiteHeader({ showNav }: { showNav: boolean }) {
 
 export function SiteFooter() {
   return (
-    <footer className="glass-bar border-t border-separator">
+    <footer className="glass-bar mt-8 border-t border-separator">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 md:flex-row md:items-start md:justify-between">
         <div className="max-w-sm space-y-2">
           <Logo />
-          <p className="m-0 text-15 text-secondary">
+          <p className="text-15 text-secondary">
             Security checks in plain English for apps built with AI. We only read what any browser
             can already see.
           </p>
         </div>
-        <p className="m-0 max-w-sm text-13 text-secondary">
+        <p className="max-w-sm text-13 text-secondary">
           Scanner is an automated check, not a penetration test, and cannot promise an app is safe.
           Only scan apps you own or are allowed to test. © {new Date().getFullYear()} Scanner.
         </p>
