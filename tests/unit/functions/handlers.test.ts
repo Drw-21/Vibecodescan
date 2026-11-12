@@ -243,6 +243,52 @@ describe('create-scan', () => {
   });
 });
 
+describe('create-scan: rescanning your own saved app', () => {
+  it('scans a verified site deeply, without a captcha', async () => {
+    const { handler, store, ran } = setup({ userIdFromRequest: () => Promise.resolve('user-1') });
+    const site = store.addSite('user-1', {
+      url: 'https://myapp.example.test/',
+      verifiedAt: new Date().toISOString(),
+    });
+    const res = await handler(post({ siteId: site.id }));
+    expect(res.status).toBe(202);
+    expect(await read(res)).toMatchObject({ status: 'queued', kind: 'deep' });
+    expect(store.inputs[0]).toMatchObject({
+      siteId: site.id,
+      kind: 'deep',
+      host: 'myapp.example.test',
+      userId: 'user-1',
+    });
+    expect(ran).toHaveLength(1);
+  });
+
+  it('scans an unverified site passively only', async () => {
+    const { handler, store } = setup({ userIdFromRequest: () => Promise.resolve('user-1') });
+    const site = store.addSite('user-1', { url: 'https://myapp.example.test/' });
+    await handler(post({ siteId: site.id }));
+    expect(store.inputs[0]).toMatchObject({ siteId: site.id, kind: 'passive' });
+  });
+
+  it('refuses someone else’s site', async () => {
+    const { handler, store } = setup({ userIdFromRequest: () => Promise.resolve('user-1') });
+    const other = store.addSite('user-2', {
+      url: 'https://other.example.test/',
+      verifiedAt: new Date().toISOString(),
+    });
+    const res = await handler(post({ siteId: other.id }));
+    expect(res.status).toBe(404);
+    expect(store.inputs).toEqual([]);
+  });
+
+  it('requires signing in to scan a saved app', async () => {
+    const { handler, store } = setup();
+    const site = store.addSite('user-1', { url: 'https://myapp.example.test/' });
+    const res = await handler(post({ siteId: site.id, turnstileToken: 'good-token' }));
+    expect([400, 401]).toContain(res.status);
+    expect(store.inputs).toEqual([]);
+  });
+});
+
 describe('run-scan endpoint', () => {
   const KEY = 'service-role-key-for-tests';
   const handler = runScanHandler({

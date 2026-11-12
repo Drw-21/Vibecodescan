@@ -1,7 +1,7 @@
 // Integration: scan every simulated reference app with the real engine and compare with
 // the expectations written down before the checks existed (expected-results.json).
-// Deep checks (supabase-public-tables, firebase-open-rules) arrive in milestone 6; until
-// then, only passive results are compared, and scores only for apps with no deep flaws.
+// Every check is implemented, so every app must match exactly: passive and deep results,
+// score and grade.
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -63,6 +63,13 @@ describe('reference suite (simulated apps)', () => {
       }
     });
   }
+
+  it('every expected failure comes from an implemented check', () => {
+    for (const app of suite.apps) {
+      for (const f of app.fails)
+        expect(implemented.has(f.checkId), `${app.id}: ${f.checkId}`).toBe(true);
+    }
+  });
 
   it('done when: the insecure test app fails and the fixed one passes', async () => {
     const insecure = REFERENCE_SITES['ref-insecure-lovable'];

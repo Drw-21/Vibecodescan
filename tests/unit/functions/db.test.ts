@@ -42,6 +42,7 @@ describe('supabaseStore', () => {
       url: 'https://a.example.com/',
       host: 'a.example.com',
       userId: null,
+      siteId: null,
       kind: 'passive',
       clientIpHash: 'f'.repeat(64),
       dailyLimit: 3,
@@ -73,6 +74,7 @@ describe('supabaseStore', () => {
       url: 'u',
       host: 'h',
       userId: null,
+      siteId: null,
       kind: 'passive',
       clientIpHash: null,
       dailyLimit: 3,
@@ -108,6 +110,41 @@ describe('supabaseStore', () => {
       'fail_scan',
     ]);
     expect(calls[1]?.body).toEqual({ p_scan_id: 's1', p_findings: [], p_grade: 'A', p_score: 100 });
+  });
+
+  it('looks up and verifies sites through their SQL functions', async () => {
+    const { store, calls } = fakeSupabase((url) => {
+      if (url.endsWith('/site_for_owner')) {
+        return {
+          body: [
+            {
+              id: 's1',
+              url: 'https://a.example.com/',
+              host: 'a.example.com',
+              verify_token: 'f'.repeat(64),
+              verify_token_expires_at: '2026-11-20T00:00:00Z',
+              verified_at: null,
+            },
+          ],
+        };
+      }
+      return { body: true };
+    });
+    expect(await store.siteForOwner('s1', 'u1')).toMatchObject({
+      id: 's1',
+      host: 'a.example.com',
+      verifiedAt: null,
+    });
+    expect(await store.beginVerifyAttempt('s1', 'u1', 10)).toBe(true);
+    expect(await store.setSiteVerified('s1', true)).toBe(true);
+    expect(await store.rotateSiteToken('s1')).toBe(true);
+    expect(calls.map((c) => c.url.split('/rpc/')[1])).toEqual([
+      'site_for_owner',
+      'begin_verify_attempt',
+      'set_site_verified',
+      'rotate_site_token',
+    ]);
+    expect(calls[0]?.body).toEqual({ p_site_id: 's1', p_user_id: 'u1' });
   });
 
   it('returns null when there is nothing to claim', async () => {

@@ -4,10 +4,12 @@
 import type pg from 'pg';
 import {
   type CreateScanRow,
+  type OwnedSiteRow,
   type ScanRow,
   type ScanStore,
   toClaimedScan,
   toCreateResult,
+  toOwnedSite,
 } from '../../supabase/functions/_shared/store.ts';
 
 export function pgStore(client: pg.Client): ScanStore {
@@ -25,8 +27,17 @@ export function pgStore(client: pg.Client): ScanStore {
   return {
     async createScan(i) {
       const rows = await asService<CreateScanRow>(
-        'select * from public.create_scan_with_limits($1, $2, $3, null, $4, $5, $6, $7)',
-        [i.url, i.host, i.userId, i.kind, i.clientIpHash, i.dailyLimit, i.hostCooldownSeconds],
+        'select * from public.create_scan_with_limits($1, $2, $3, $4, $5, $6, $7, $8)',
+        [
+          i.url,
+          i.host,
+          i.userId,
+          i.siteId,
+          i.kind,
+          i.clientIpHash,
+          i.dailyLimit,
+          i.hostCooldownSeconds,
+        ],
       );
       return toCreateResult(rows[0]);
     },
@@ -40,6 +51,33 @@ export function pgStore(client: pg.Client): ScanStore {
         'select public.complete_scan($1, $2::jsonb, $3, $4) as ok',
         [scanId, JSON.stringify(findings), grade, score],
       );
+      return rows[0]?.ok === true;
+    },
+    async siteForOwner(siteId, userId) {
+      const rows = await asService<OwnedSiteRow>('select * from public.site_for_owner($1, $2)', [
+        siteId,
+        userId,
+      ]);
+      return toOwnedSite(rows[0]);
+    },
+    async beginVerifyAttempt(siteId, userId, cooldownSeconds) {
+      const rows = await asService<{ ok: boolean }>(
+        'select public.begin_verify_attempt($1, $2, $3) as ok',
+        [siteId, userId, cooldownSeconds],
+      );
+      return rows[0]?.ok === true;
+    },
+    async setSiteVerified(siteId, verified) {
+      const rows = await asService<{ ok: boolean }>(
+        'select public.set_site_verified($1, $2) as ok',
+        [siteId, verified],
+      );
+      return rows[0]?.ok === true;
+    },
+    async rotateSiteToken(siteId) {
+      const rows = await asService<{ ok: boolean }>('select public.rotate_site_token($1) as ok', [
+        siteId,
+      ]);
       return rows[0]?.ok === true;
     },
     async failScan(scanId, errorCode, onlyIfQueued) {

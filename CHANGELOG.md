@@ -2,6 +2,18 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
+## 0.6.0 — Milestone 6a: Verification and deep checks (unreleased)
+
+- `verify-site`: owner proves a site with a DNS TXT record or `/.well-known/scanner-verify.txt`;
+  same-host only, whole-token match, one check per 10 seconds, expired codes replaced.
+- `create-scan` accepts `{ siteId }` from the owner: verified sites get a deep scan, and
+  ownership is re-checked right before the deep checks run.
+- Deep checks `supabase-public-tables` and `firebase-open-rules` (read-only, `limit=1`, names only,
+  never row data), both live.
+- Migration `20261112000100_site_verification.sql`.
+- All 13 reference apps now match their written results exactly, deep checks included; an
+  end-to-end test proves deep checks run only on verified sites. ADR 0009.
+
 ## 0.5.1 — Hosting (unreleased)
 
 - `wrangler.jsonc`: the website deploys as a Cloudflare Worker serving `web/dist` (Cloudflare's

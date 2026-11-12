@@ -36,3 +36,7 @@ import_map = "./functions/deno.json"
 [functions.run-scan]
 verify_jwt = true
 import_map = "./functions/deno.json"
+
+[functions.verify-site]
+verify_jwt = true
+import_map = "./functions/deno.json"

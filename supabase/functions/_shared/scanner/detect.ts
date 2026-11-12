@@ -43,6 +43,8 @@ const PLATFORM_RULES: PlatformRule[] = [
 const SUPABASE_URL = /https:\/\/([a-z0-9]{20})\.supabase\.co/;
 const SUPABASE_PUBLISHABLE = /(?<![A-Za-z0-9_-])sb_publishable_[A-Za-z0-9_-]{20,}/;
 const FIREBASE_PROJECT = /projectId["']?\s*:\s*["']([a-z0-9-]{4,40})["']/;
+const FIREBASE_DATABASE =
+  /databaseURL["']?\s*:\s*["'](https:\/\/[a-z0-9-]{4,63}\.(?:firebaseio\.com|[a-z0-9-]{2,30}\.firebasedatabase\.app))\/?["']/;
 
 export function detect(input: DetectInput): { platform: Platform; backend: Backend } {
   return { platform: detectPlatform(input), backend: detectBackend(input) };
@@ -76,7 +78,10 @@ function detectBackend(input: DetectInput): Backend {
   for (const text of texts) {
     const project = FIREBASE_PROJECT.exec(text);
     if (project?.[1] && /firebaseapp\.com|firebaseio\.com|AIza/.test(text)) {
-      backend.firebase = { projectId: project[1] };
+      const databaseUrl = FIREBASE_DATABASE.exec(text)?.[1];
+      backend.firebase = databaseUrl
+        ? { projectId: project[1], databaseUrl }
+        : { projectId: project[1] };
       break;
     }
   }

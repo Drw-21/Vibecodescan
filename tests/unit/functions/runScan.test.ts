@@ -26,6 +26,7 @@ async function queued(store: MemoryStore, url: string): Promise<string> {
     url,
     host,
     userId: null,
+    siteId: null,
     kind: 'passive',
     clientIpHash: null,
     dailyLimit: 3,
@@ -114,6 +115,77 @@ describe('runScan', () => {
     store.claimScan = () => Promise.reject(new Error('timeout'));
     expect(await run(id)).toEqual({ status: 'failed', errorCode: 'internal' });
     expect(store.scans.get(id)?.status).toBe('running');
+  });
+
+  it('runs deep checks only after ownership is proven again', async () => {
+    const site0 = REFERENCE_SITES['ref-open-table'];
+    if (!site0) throw new Error('missing site');
+    const net = fakeNet(site0.routes, site0.dns);
+    const fetch = createSafeFetch({
+      resolve: net.resolve,
+      transport: net.transport,
+      userAgent: 'test',
+    });
+    const deepRun = async (stillOwned: boolean) => {
+      const store = new MemoryStore();
+      const site = store.addSite('user-1', {
+        url: site0.start,
+        verifiedAt: new Date().toISOString(),
+      });
+      const r = await store.createScan({
+        url: site0.start,
+        host: site.host,
+        userId: 'user-1',
+        siteId: site.id,
+        kind: 'deep',
+        clientIpHash: null,
+        dailyLimit: 3,
+        hostCooldownSeconds: 600,
+      });
+      if (r.outcome !== 'ok') throw new Error('not created');
+      await runScan(r.scanId, {
+        store,
+        fetch,
+        log: silentLogger,
+        verifySite: () => Promise.resolve(stillOwned),
+      });
+      return { store, site, findings: store.scans.get(r.scanId)?.findings ?? [] };
+    };
+
+    const owned = await deepRun(true);
+    expect(
+      owned.findings.some((f) => f.check_id === 'supabase-public-tables' && f.status === 'fail'),
+    ).toBe(true);
+    expect(owned.store.sites.get(owned.site.id)?.verifiedAt).not.toBeNull();
+
+    const lost = await deepRun(false);
+    expect(lost.findings.some((f) => f.check_id === 'supabase-public-tables')).toBe(false);
+    expect(lost.store.sites.get(lost.site.id)?.verifiedAt).toBeNull();
+  });
+
+  it('never runs deep checks for a passive scan, even of a verified site', async () => {
+    const site0 = REFERENCE_SITES['ref-open-table'];
+    if (!site0) throw new Error('missing site');
+    const { store, run } = setup(site0);
+    const site = store.addSite('user-1', {
+      url: site0.start,
+      verifiedAt: new Date().toISOString(),
+    });
+    const r = await store.createScan({
+      url: site0.start,
+      host: site.host,
+      userId: 'user-1',
+      siteId: site.id,
+      kind: 'passive',
+      clientIpHash: null,
+      dailyLimit: 3,
+      hostCooldownSeconds: 600,
+    });
+    if (r.outcome !== 'ok') throw new Error('not created');
+    await run(r.scanId);
+    expect(
+      store.scans.get(r.scanId)?.findings.some((f) => f.check_id === 'supabase-public-tables'),
+    ).toBe(false);
   });
 
   it('marks the scan failed if saving the results fails', async () => {

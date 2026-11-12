@@ -1,9 +1,10 @@
 // Edge Function entry point: wires real services into the tested handler.
 
 import { serviceClient, supabaseStore } from '../_shared/db.ts';
-import { env, productionSafeFetch } from '../_shared/deno.ts';
+import { env, productionSafeFetch, txtLookup } from '../_shared/deno.ts';
 import { consoleLogger } from '../_shared/log.ts';
 import { runScan } from '../_shared/runScan.ts';
+import { verifyOwnership } from '../_shared/verify.ts';
 import { runScanHandler } from './handler.ts';
 
 const serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY');
@@ -13,6 +14,18 @@ const fetch = productionSafeFetch();
 Deno.serve(
   runScanHandler({
     serviceRoleKey,
-    runScan: (scanId) => runScan(scanId, { store, fetch, log: consoleLogger }),
+    runScan: (scanId) =>
+      runScan(scanId, {
+        store,
+        fetch,
+        log: consoleLogger,
+        verifySite: async (site) =>
+          (
+            await verifyOwnership(
+              { url: site.url, host: site.host, token: site.verifyToken },
+              { fetch, lookupTxt: txtLookup },
+            )
+          ).verified,
+      }),
   }),
 );

@@ -23,7 +23,7 @@ export type Platform = 'lovable' | 'bolt' | 'replit' | 'v0' | 'vercel' | 'netlif
 
 export interface Backend {
   supabase?: { url: string; anonKey: string };
-  firebase?: { projectId: string };
+  firebase?: { projectId: string; databaseUrl?: string };
 }
 
 export interface Bundle {
