@@ -2,6 +2,12 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
+## 0.6.5 — Blank paid prices and a hand-off guide (unreleased)
+
+- Monitor and Deep scan show no price until billing exists (owner's call; tested).
+- `docs/handoff.md`: how someone else sets up their own copy (GitHub, Supabase, Cloudflare) and
+  continues with Claude Code.
+
 ## 0.6.4 — Separate scan page and desktop layouts (unreleased)
 
 - `/` is now only the landing page; the free scan lives on `/scan`, opened by the "Scan my app"

@@ -77,7 +77,7 @@ export const FEATURES: { icon: IconName; title: string; text: string }[] = [
   },
 ];
 
-// --- Pricing (prices from the spec; paid plans arrive with billing) -------------------------
+// --- Pricing (paid plans arrive with billing; their prices stay blank until then, owner's call) ---
 export interface Plan {
   name: string;
   price: string;
@@ -105,8 +105,8 @@ export const PLANS: Plan[] = [
   },
   {
     name: 'Monitor',
-    price: '$19',
-    period: '/month',
+    price: '',
+    period: '',
     blurb: 'Stay safe as your app changes.',
     features: [
       'Up to 3 apps',
@@ -120,8 +120,8 @@ export const PLANS: Plan[] = [
   },
   {
     name: 'Deep scan',
-    price: '$15',
-    period: 'one-off',
+    price: '',
+    period: '',
     blurb: 'Everything, once, for an app you own.',
     features: [
       'Deep checks of your Supabase or Firebase data',

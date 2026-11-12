@@ -273,10 +273,12 @@ export function Landing() {
                       </span>
                     )}
                   </div>
-                  <p>
-                    <span className="text-44 font-medium tracking-tight">{plan.price}</span>
-                    {plan.period && <span className={`text-15 ${muted}`}> {plan.period}</span>}
-                  </p>
+                  {plan.price !== '' && (
+                    <p>
+                      <span className="text-44 font-medium tracking-tight">{plan.price}</span>
+                      {plan.period && <span className={`text-15 ${muted}`}> {plan.period}</span>}
+                    </p>
+                  )}
                   <p className={`text-15 ${muted}`}>{plan.blurb}</p>
                 </div>
                 <ul className="flex flex-1 flex-col gap-2">
