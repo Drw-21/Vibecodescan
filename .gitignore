@@ -10,3 +10,4 @@ supabase/.branches/
 *.log
 web/dist/
 .wrangler/
+node_modules

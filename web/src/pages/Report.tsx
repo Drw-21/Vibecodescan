@@ -1,6 +1,7 @@
 import { Button } from '../components/Button';
 import { FindingRow, type FindingView } from '../components/FindingRow';
 import { GradeRing } from '../components/GradeRing';
+import { IconChip } from '../components/Icon';
 import { SeverityBadge } from '../components/SeverityBadge';
 import type { FreeSummary } from '../lib/api';
 import { SEVERITIES, SEVERITY_LABEL } from '../lib/severity';
@@ -16,52 +17,75 @@ export function FreeReport({
   summary: FreeSummary;
   onScanAgain: () => void;
 }) {
-  const total =
-    summary.counts.critical + summary.counts.high + summary.counts.medium + summary.counts.low;
+  const shown = SEVERITIES.filter((s) => s !== 'info');
   return (
-    <section aria-labelledby="report-title" className="space-y-6">
-      <div className="space-y-4 rounded-card bg-surface p-6 text-center shadow-card">
-        <h1 id="report-title" tabIndex={-1} className="m-0 break-all text-22 font-semibold">
+    <section aria-labelledby="report-title" className="mx-auto max-w-5xl space-y-6 py-8">
+      <div className="space-y-1">
+        <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">
+          Your free report
+        </p>
+        <h1
+          id="report-title"
+          tabIndex={-1}
+          className="m-0 break-all text-28 font-bold tracking-tight"
+        >
           {host}
         </h1>
-        <GradeRing grade={summary.grade} score={summary.score} partial={summary.partial} />
-        <p className="m-0 text-17">{summarySentence(summary)}</p>
-        {total > 0 && (
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
+        <div className="flex flex-col items-center gap-4 rounded-card bg-surface p-6 text-center shadow-card">
+          <GradeRing grade={summary.grade} score={summary.score} partial={summary.partial} />
+          <p className="m-0 text-17">{summarySentence(summary)}</p>
+        </div>
+
+        <div className="space-y-6">
           <ul
-            className="m-0 flex list-none flex-wrap justify-center gap-2 p-0"
+            className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4"
             aria-label="Issues by severity"
           >
-            {SEVERITIES.filter((s) => s !== 'info' && summary.counts[s] > 0).map((s) => (
-              <li key={s}>
-                <SeverityBadge severity={s} count={summary.counts[s]} />
+            {shown.map((s) => (
+              <li key={s} className="space-y-2 rounded-card bg-surface p-4 shadow-card">
+                <SeverityBadge severity={s} />
+                <p className="m-0 text-28 font-bold tracking-tight">
+                  {summary.counts[s]}
+                  <span className="sr-only"> {SEVERITY_LABEL[s].toLowerCase()} issues</span>
+                </p>
               </li>
             ))}
           </ul>
-        )}
+
+          {summary.topIssues.length > 0 ? (
+            <div className="rounded-card bg-surface shadow-card">
+              <h2 className="m-0 px-5 pt-5 text-17 font-semibold">Top issues</h2>
+              <ol className="m-0 list-none p-0">
+                {summary.topIssues.map((title, i) => (
+                  <li
+                    key={`${String(i)}-${title}`}
+                    className="flex items-start gap-3 border-b border-separator px-5 py-4 text-17 last:border-b-0"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-13 font-bold text-accent"
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="min-w-0 break-words">{title}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : (
+            <p className="m-0 rounded-card bg-surface p-6 text-center text-17 shadow-card">
+              Nothing to fix in the checks we ran. Rescan after every big change.
+            </p>
+          )}
+        </div>
       </div>
 
-      {summary.topIssues.length > 0 ? (
-        <div className="rounded-card bg-surface shadow-card">
-          <h2 className="m-0 px-4 pt-4 text-17 font-semibold">Top issues</h2>
-          <ol className="m-0 list-none p-0">
-            {summary.topIssues.map((title, i) => (
-              <li
-                key={`${String(i)}-${title}`}
-                className="border-b border-separator px-4 py-3 text-17 last:border-b-0"
-              >
-                {title}
-              </li>
-            ))}
-          </ol>
-        </div>
-      ) : (
-        <p className="m-0 rounded-card bg-surface p-6 text-center text-17 shadow-card">
-          Nothing to fix in the checks we ran. Rescan after every big change.
-        </p>
-      )}
-
-      <div className="space-y-2 rounded-card border border-separator p-4 text-15 text-secondary">
-        <p className="m-0">
+      <div className="flex flex-col gap-4 rounded-card bg-accent-soft p-5 sm:flex-row sm:items-center">
+        <IconChip name="clipboard" />
+        <p className="m-0 flex-1 text-15">
           The full report explains every issue in plain English, with a fix prompt you can paste
           into your AI builder. It unlocks once you show you own this app.
         </p>

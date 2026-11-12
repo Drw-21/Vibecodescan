@@ -2,6 +2,14 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
+## 0.6.1 — Visual refresh (unreleased)
+
+- New look from the owner's reference designs: top bar, two-column hero with a report preview,
+  "How it works", the nine checks with icons, closing call to action and footer; report with a thin
+  grade ring, severity tiles and numbered top issues; progress bar on the scan screen.
+- Indigo accent with a flat tint (no decorative gradients); all colour pairs still meet WCAG AA
+  (tested); 52 px hero headline on desktop only. ADR 0007 updated.
+
 ## 0.6.0 — Milestone 6a: Verification and deep checks (unreleased)
 
 - `verify-site`: owner proves a site with a DNS TXT record or `/.well-known/scanner-verify.txt`;

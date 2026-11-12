@@ -35,5 +35,13 @@ free scan, in light and dark mode, on phone and desktop.
   browser test applies the production CSP from `_headers` and fails on any violation, and covers
   the error path and "Scan another app".
 
+- **Visual refresh (owner's references):** a structure like a modern SaaS landing page (top bar,
+  two-column hero with a report preview, "How it works", a grid of the nine checks, closing call
+  to action, footer), cards and a thin accent ring like the reference dashboards, an indigo accent
+  with a flat soft tint for icon chips, and 16 px card corners. One deviation from the spec's type
+  scale: the desktop hero headline is 52 px (phones keep 34 px). Left out on purpose: customer logos
+  and testimonials (none exist yet, so they would mislead) and decorative gradients (the spec rules
+  them out); flat tints are used instead.
+
 **Consequences.** Signed-in scans (202 + watching the row) are handled by the server already; the
 screens for them come with accounts in milestone 6.
