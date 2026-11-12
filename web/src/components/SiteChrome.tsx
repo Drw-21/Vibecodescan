@@ -34,6 +34,18 @@ export function SiteHeader({ showNav }: { showNav: boolean }) {
               What we check
             </a>
             <a
+              href="#pricing"
+              className="hidden min-h-11 items-center rounded-lg px-3 text-secondary hover:text-ink md:inline-flex"
+            >
+              Pricing
+            </a>
+            <a
+              href="#faq"
+              className="hidden min-h-11 items-center rounded-lg px-3 text-secondary hover:text-ink md:inline-flex"
+            >
+              FAQ
+            </a>
+            <a
               href="#scan"
               className="inline-flex min-h-11 items-center gap-1.5 rounded-button bg-accent px-4 font-semibold text-on-accent hover:opacity-90"
             >

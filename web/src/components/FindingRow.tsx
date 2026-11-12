@@ -44,6 +44,7 @@ export function FindingRow({ finding }: { finding: FindingView }) {
         }}
         className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left"
       >
+        <span className="sr-only">{open ? 'Hide details: ' : 'Show details: '}</span>
         <SeverityBadge severity={finding.severity} />
         <span className="flex-1 text-17 font-medium">{finding.title}</span>
         <span

@@ -2,6 +2,15 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
+## 0.6.3 — Landing page structure (unreleased)
+
+- Landing follows the owner's template: hero, social proof, problem, solution, features, pricing,
+  FAQ, final call to action; one goal (start a free scan).
+- Problem as 3 one-line bullets; solution as 3 before-and-after pairs; 6 feature cards; pricing
+  from the spec (paid plans "Coming soon"); FAQ with honest answers.
+- All copy in `web/src/lib/landingContent.ts`; `[bracketed]` text marks placeholders to replace.
+- Every button label starts with a verb (tested); finding rows read "Show details: …".
+
 ## 0.6.2 — Frosted glass and the Geist typeface (unreleased)
 
 - Glass surfaces (translucent, blurred, light edge) for cards, tiles, panels and the call to

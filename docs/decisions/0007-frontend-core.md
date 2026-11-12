@@ -43,5 +43,14 @@ free scan, in light and dark mode, on phone and desktop.
   and testimonials (none exist yet, so they would mislead) and decorative gradients (the spec rules
   them out); flat tints are used instead.
 
+- **Landing page structure** (owner's template): hero, social proof, problem, solution, features,
+  pricing, FAQ, final call to action, in that order, with one goal (start a free scan). All copy
+  lives in `web/src/lib/landingContent.ts`; text in `[square brackets]` is a placeholder (customer
+  quotes, statistics) to replace before launch. Problem = 3 one-line bullets in the founder's own
+  words; solution = 3 before-and-after pairs with concrete results; features = 6 cards (3-word
+  names, one-sentence benefits) covering only what the free scan does. Paid plans show the spec's
+  prices with disabled buttons until billing exists (milestone 7). Every button label starts with a
+  verb (tested).
+
 **Consequences.** Signed-in scans (202 + watching the row) are handled by the server already; the
 screens for them come with accounts in milestone 6.
