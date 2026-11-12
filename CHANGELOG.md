@@ -2,6 +2,19 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
+## 0.6.4 — Separate scan page and desktop layouts (unreleased)
+
+- `/` is now only the landing page; the free scan lives on `/scan`, opened by the "Scan my app"
+  buttons. Any other address shows the landing page.
+- Social proof (placeholder stats and testimonials) removed until real ones exist (tested: no
+  `[bracketed]` text on the page).
+- New look inspired by the owner's references: lilac hero panel with three preview cards, large
+  light headlines, deep-ink pill buttons and panels, two-column problem and FAQ, bento solution.
+- Fixed overlapping blocks on desktop: `m-0` classes were cancelling the spacing between stacked
+  items (Tailwind's base styles already remove default margins, so they are gone).
+- Desktop report is its own layout: grade beside the summary and a severity bar, then top issues
+  beside "The full report" panel. Sample full report: summary column beside the findings.
+
 ## 0.6.3 — Landing page structure (unreleased)
 
 - Landing follows the owner's template: hero, social proof, problem, solution, features, pricing,

@@ -5,8 +5,7 @@ import { Landing } from '../pages/Landing';
 
 afterEach(cleanup);
 
-const renderLanding = () =>
-  render(<Landing siteKey="" error={null} initialUrl="" onScan={() => undefined} />);
+const renderLanding = () => render(<Landing />);
 
 /** Verbs a button or call-to-action link may start with. */
 const VERBS = [
@@ -33,28 +32,34 @@ describe('landing page', () => {
       (e) => e.tagName === 'SECTION',
     );
     const ids = top.map((s) => s.id || s.getAttribute('aria-labelledby'));
-    expect(ids).toEqual([
-      'scan',
-      'proof',
-      'problem',
-      'how',
-      'checks',
-      'pricing',
-      'faq',
-      'cta-title',
-    ]);
+    expect(ids).toEqual(['top', 'problem', 'how', 'checks', 'pricing', 'faq', 'cta-title']);
   });
 
   it('gives every button and call-to-action link a label that starts with a verb', () => {
     const { container } = renderLanding();
     const labelled = [
       ...screen.getAllByRole('button').map((b) => b.textContent),
-      ...[...container.querySelectorAll('a.bg-accent')].map((a) => a.textContent),
+      ...[...container.querySelectorAll('a[data-cta]')].map((a) => a.textContent),
     ].map((t) => t.trim());
     expect(labelled.length).toBeGreaterThan(5);
     for (const label of labelled) {
       expect(VERBS, label).toContain(label.split(/[\s:]/)[0]);
     }
+  });
+
+  it('shows no placeholder text, stats or testimonials until real ones exist', () => {
+    const { container } = renderLanding();
+    expect(container.textContent).not.toMatch(/\[[^\]]*\]/);
+    expect(container.querySelector('blockquote')).toBeNull();
+  });
+
+  it('sends every "start a scan" link to the scan page', () => {
+    const { container } = renderLanding();
+    const scanLinks = [...container.querySelectorAll('a[data-cta]')].filter((a) =>
+      /^(Scan|Start)/.test(a.textContent.trim()),
+    );
+    expect(scanLinks.length).toBeGreaterThanOrEqual(3);
+    for (const a of scanLinks) expect(a.getAttribute('href')).toBe('/scan');
   });
 
   it('shows every plan, but paid plans cannot be bought until billing exists', () => {

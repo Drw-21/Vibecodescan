@@ -55,16 +55,16 @@ export function FindingRow({ finding }: { finding: FindingView }) {
         </span>
       </button>
       <div id={panelId} hidden={!open} className="space-y-3 px-4 pb-4">
-        <p className="m-0 text-15 text-secondary">{finding.explanation}</p>
+        <p className="text-15 text-secondary">{finding.explanation}</p>
         {finding.evidence !== undefined && (
-          <p className="m-0 text-13">
+          <p className="text-13">
             <span className="font-semibold">What we saw: </span>
             <code className="break-all rounded bg-bg px-1.5 py-0.5">{finding.evidence}</code>
           </p>
         )}
         {finding.fixPrompt !== undefined && (
           <div className="space-y-2">
-            <pre className="m-0 whitespace-pre-wrap rounded-button bg-bg p-3 text-13">
+            <pre className="whitespace-pre-wrap rounded-button bg-bg p-3 text-13">
               {finding.fixPrompt}
             </pre>
             <Button

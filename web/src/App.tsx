@@ -4,18 +4,33 @@ import { SiteFooter, SiteHeader } from './components/SiteChrome';
 import { type FreeSummary, createScan } from './lib/api';
 import { type PublicEnv, readEnv } from './lib/env';
 import { Landing } from './pages/Landing';
+import { ScanForm } from './pages/ScanForm';
 import { FreeReport } from './pages/Report';
 
 type Screen =
-  | { name: 'landing'; error: string | null }
+  | { name: 'form'; error: string | null }
   | { name: 'scanning'; host: string; finished: boolean }
   | { name: 'report'; host: string; summary: FreeSummary };
 
 /** How long the finished checklist stays visible before the report appears. */
 const FINISH_PAUSE_MS = 600;
 
-export function App({ env = readEnv(), fetchImpl }: { env?: PublicEnv; fetchImpl?: typeof fetch }) {
-  const [screen, setScreen] = useState<Screen>({ name: 'landing', error: null });
+/** Two pages: the landing page at "/", and the free scan at "/scan". */
+export function pageFor(path: string): 'landing' | 'scan' {
+  return path.replace(/\/+$/, '') === '/scan' ? 'scan' : 'landing';
+}
+
+export function App({
+  env = readEnv(),
+  fetchImpl,
+  path = window.location.pathname,
+}: {
+  env?: PublicEnv;
+  fetchImpl?: typeof fetch;
+  path?: string;
+}) {
+  const page = pageFor(path);
+  const [screen, setScreen] = useState<Screen>({ name: 'form', error: null });
   const [lastUrl, setLastUrl] = useState('');
   const main = useRef<HTMLElement>(null);
   const first = useRef(true);
@@ -37,7 +52,7 @@ export function App({ env = readEnv(), fetchImpl }: { env?: PublicEnv; fetchImpl
     setScreen({ name: 'scanning', host, finished: false });
     const outcome = await createScan(env, url, token, fetchImpl);
     if (outcome.kind === 'error') {
-      setScreen({ name: 'landing', error: outcome.message });
+      setScreen({ name: 'form', error: outcome.message });
       return;
     }
     setScreen({ name: 'scanning', host, finished: true });
@@ -47,10 +62,11 @@ export function App({ env = readEnv(), fetchImpl }: { env?: PublicEnv; fetchImpl
 
   return (
     <div className="flex min-h-dvh flex-col text-ink">
-      <SiteHeader showNav={screen.name === 'landing'} />
-      <main ref={main} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16">
-        {screen.name === 'landing' && (
-          <Landing
+      <SiteHeader page={page} />
+      <main ref={main} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6">
+        {page === 'landing' && <Landing />}
+        {page === 'scan' && screen.name === 'form' && (
+          <ScanForm
             siteKey={env.turnstileSiteKey}
             error={screen.error}
             initialUrl={lastUrl}
@@ -59,16 +75,16 @@ export function App({ env = readEnv(), fetchImpl }: { env?: PublicEnv; fetchImpl
             }}
           />
         )}
-        {screen.name === 'scanning' && (
+        {page === 'scan' && screen.name === 'scanning' && (
           <ScanProgress host={screen.host} finished={screen.finished} />
         )}
-        {screen.name === 'report' && (
+        {page === 'scan' && screen.name === 'report' && (
           <FreeReport
             host={screen.host}
             summary={screen.summary}
             onScanAgain={() => {
               setLastUrl('');
-              setScreen({ name: 'landing', error: null });
+              setScreen({ name: 'form', error: null });
             }}
           />
         )}

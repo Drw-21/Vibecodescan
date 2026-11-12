@@ -165,6 +165,12 @@ async function main() {
         await page.getByRole('button', { name: /OpenAI API key/ }).click();
         await check(page, `${label}-1-landing`);
 
+        // The landing page has no form: its button opens the scan page.
+        await page.getByRole('link', { name: 'Scan my app free' }).click();
+        await page.waitForURL(`${BASE}/scan`);
+        await page.getByRole('heading', { name: 'Scan your app' }).waitFor();
+        await check(page, `${label}-1-scan-page`);
+
         // Keyboard only: focus the field, type, press Enter.
         await page.getByLabel('Your app’s address').focus();
         await page.keyboard.type('myapp.lovable.app');
@@ -186,7 +192,7 @@ async function main() {
         }
         // Back to the start, then the error path: the message shows and the address stays.
         await page.getByRole('button', { name: 'Scan another app' }).click();
-        await page.getByRole('heading', { name: 'Is the app you built with AI safe?' }).waitFor();
+        await page.getByRole('heading', { name: 'Scan your app' }).waitFor();
         await page.getByLabel('Your app’s address').fill('localhost');
         await page.waitForTimeout(150);
         await page.getByRole('button', { name: 'Scan my app' }).click();

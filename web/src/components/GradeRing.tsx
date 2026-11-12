@@ -27,7 +27,7 @@ export function GradeRing({
   const filled = (Math.max(0, Math.min(100, score)) / 100) * circumference;
   const label = `Grade ${grade}, ${GRADE_WORD[grade] ?? ''}. Score ${String(score)} out of 100${partial ? ', partial' : ''}.`;
   return (
-    <figure className="m-0 flex flex-col items-center gap-3" aria-label={label} role="img">
+    <figure className="flex flex-col items-center gap-3" aria-label={label} role="img">
       <svg width={size} height={size} viewBox="0 0 140 140" aria-hidden="true">
         <circle
           cx="70"

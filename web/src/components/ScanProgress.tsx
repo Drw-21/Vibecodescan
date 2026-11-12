@@ -33,21 +33,29 @@ export function ScanProgress({ host, finished }: { host: string; finished: boole
 
   const percent = Math.round((done / STEPS.length) * 100);
   return (
-    <section aria-labelledby="scanning-title" className="mx-auto max-w-xl space-y-6 py-8">
-      <header className="space-y-2 text-center">
-        <h1 id="scanning-title" tabIndex={-1} className="m-0 text-28 font-bold tracking-tight">
+    <section
+      aria-labelledby="scanning-title"
+      className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-6 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-center lg:gap-16 lg:py-16"
+    >
+      <header className="flex flex-col gap-3 text-center lg:text-left">
+        <h1
+          id="scanning-title"
+          tabIndex={-1}
+          className="text-28 font-medium tracking-tight lg:text-52"
+        >
           Scanning your app
         </h1>
-        <p className="m-0 break-all text-17 text-secondary">{host}</p>
+        <p className="break-all text-17 text-secondary">{host}</p>
+        <p className="text-15 text-secondary">This usually takes about 30 seconds.</p>
       </header>
-      <div className="space-y-4 rounded-card glass p-5">
+      <div className="glass flex flex-col gap-4 rounded-panel p-5 lg:p-8">
         <div className="h-2 overflow-hidden rounded-full bg-accent-soft" aria-hidden="true">
           <div
             className="h-full rounded-full bg-accent transition-[width] duration-300"
             style={{ width: `${String(percent)}%` }}
           />
         </div>
-        <ol className="m-0 list-none space-y-1 p-0" aria-live="polite">
+        <ol className="list-none space-y-1 p-0" aria-live="polite">
           {STEPS.map((step, i) => {
             const state = i < done ? 'done' : i === done ? 'active' : 'waiting';
             return (
@@ -73,7 +81,6 @@ export function ScanProgress({ host, finished }: { host: string; finished: boole
           })}
         </ol>
       </div>
-      <p className="m-0 text-center text-15 text-secondary">This usually takes about 30 seconds.</p>
     </section>
   );
 }
