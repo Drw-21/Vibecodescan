@@ -1,96 +1,23 @@
 import { type SyntheticEvent, useCallback, useState } from 'react';
 import { Button } from '../components/Button';
 import { GradeRing } from '../components/GradeRing';
-import { Icon, IconChip, type IconName } from '../components/Icon';
+import { Icon, IconChip } from '../components/Icon';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { Turnstile } from '../components/Turnstile';
+import {
+  BUILDERS,
+  FAQ,
+  FEATURES,
+  FINAL_CTA,
+  PLANS,
+  PROBLEM,
+  PROOF_HEADING,
+  PROOF_STATS,
+  SOLUTION,
+  TESTIMONIALS,
+} from '../lib/landingContent';
 import { SAMPLE } from '../lib/sample';
 import { FullReport } from './Report';
-
-const TRUST: { icon: IconName; title: string; text: string }[] = [
-  {
-    icon: 'eye',
-    title: 'Looks, never touches',
-    text: 'We only read what any browser can already see. Nothing on your app is changed.',
-  },
-  {
-    icon: 'text',
-    title: 'Plain English',
-    text: 'Every issue explained without jargon, with what to do about it.',
-  },
-  {
-    icon: 'clipboard',
-    title: 'Fixes you can paste',
-    text: 'Copy a ready-made prompt straight into Lovable, Bolt, v0 or Cursor.',
-  },
-];
-
-const STEPS: { title: string; text: string }[] = [
-  {
-    title: 'Paste your app’s address',
-    text: 'The address you share with your users, for example myapp.lovable.app.',
-  },
-  {
-    title: 'We look like an attacker would',
-    text: 'Read-only checks on what your app sends to every visitor. About 30 seconds.',
-  },
-  {
-    title: 'Fix it with your AI builder',
-    text: 'Each issue comes with plain words and a prompt to paste into your builder.',
-  },
-];
-
-const CHECKS: { icon: IconName; title: string; text: string; deep?: boolean }[] = [
-  {
-    icon: 'key',
-    title: 'Private keys in your code',
-    text: 'OpenAI, Stripe, Supabase admin and other secret keys sent to every visitor.',
-  },
-  {
-    icon: 'file',
-    title: 'Files left on your site',
-    text: 'Settings files, Git data and database backups anyone can download.',
-  },
-  {
-    icon: 'code',
-    title: 'Published source code',
-    text: 'Source maps that hand out the code your AI builder wrote.',
-  },
-  {
-    icon: 'shield',
-    title: 'Browser protections',
-    text: 'The five security headers that stop injected scripts and clickjacking.',
-  },
-  {
-    icon: 'lock',
-    title: 'Secure connection',
-    text: 'HTTPS everywhere, and http:// sending visitors to the safe version.',
-  },
-  {
-    icon: 'cookie',
-    title: 'Login cookies',
-    text: 'Session cookies missing the settings that stop account takeover.',
-  },
-  {
-    icon: 'layers',
-    title: 'What it’s built with',
-    text: 'Your builder and backend, so every fix fits your tools.',
-  },
-  {
-    icon: 'database',
-    title: 'Open database tables',
-    text: 'Supabase tables anyone can read while logged out.',
-    deep: true,
-  },
-  {
-    icon: 'flame',
-    title: 'Open Firebase data',
-    text: 'Firebase data readable without signing in.',
-    deep: true,
-  },
-];
-
-const BUILDERS = ['Lovable', 'Bolt', 'Replit', 'v0', 'Cursor'];
 
 /** A small, static picture of a report beside the form. Decorative: the real sample is below. */
 function HeroPreview() {
@@ -234,121 +161,235 @@ export function Landing({
           </ul>
         </div>
         <HeroPreview />
-      </section>
-
-      <section aria-label="Builders we support" className="text-center">
-        <p className="m-0 text-13 font-semibold uppercase tracking-wider text-secondary">
-          Made for apps built with
-        </p>
-        <ul className="m-0 mt-4 flex list-none flex-wrap justify-center gap-x-8 gap-y-2 p-0 text-22 font-semibold text-secondary">
-          {BUILDERS.map((b) => (
-            <li key={b}>{b}</li>
-          ))}
-        </ul>
-      </section>
-
-      <section id="how" aria-labelledby="how-title" className="scroll-mt-24 space-y-8">
-        <div className="max-w-2xl space-y-2">
-          <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">
-            How it works
+        <div className="text-center lg:col-span-2">
+          <p className="m-0 text-13 font-semibold uppercase tracking-wider text-secondary">
+            Made for apps built with
           </p>
-          <h2 id="how-title" className="m-0 text-28 font-bold tracking-tight">
-            Three steps, no security degree needed
-          </h2>
+          <ul className="m-0 mt-4 flex list-none flex-wrap justify-center gap-x-8 gap-y-2 p-0 text-22 font-semibold text-secondary">
+            {BUILDERS.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
         </div>
-        <ol className="m-0 grid list-none gap-4 p-0 md:grid-cols-3">
-          {STEPS.map((step, i) => (
-            <li key={step.title} className="space-y-3 rounded-card glass p-6">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-15 font-bold text-on-accent">
-                {i + 1}
-              </span>
-              <h3 className="m-0 text-17 font-semibold">{step.title}</h3>
-              <p className="m-0 text-15 text-secondary">{step.text}</p>
-            </li>
-          ))}
-        </ol>
       </section>
-
-      <section id="checks" aria-labelledby="checks-title" className="scroll-mt-24 space-y-8">
-        <div className="max-w-2xl space-y-2">
-          <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">
-            What we check
-          </p>
-          <h2 id="checks-title" className="m-0 text-28 font-bold tracking-tight">
-            The mistakes AI builders make most often
-          </h2>
-          <p className="m-0 text-17 text-secondary">
-            Seven checks run on every free scan. Two deeper checks run once you show you own the
-            app.
-          </p>
-        </div>
-        <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {CHECKS.map((c) => (
-            <li key={c.title} className="flex gap-4 rounded-card glass p-5">
-              <IconChip name={c.icon} />
-              <div className="space-y-1">
-                <h3 className="m-0 text-17 font-semibold">{c.title}</h3>
-                <p className="m-0 text-15 text-secondary">{c.text}</p>
-                {c.deep && (
-                  <p className="m-0 pt-1 text-13 font-semibold text-accent">
-                    After you prove you own the app
-                  </p>
-                )}
-              </div>
+      <section id="proof" aria-labelledby="proof-title" className="scroll-mt-24 space-y-8">
+        <h2 id="proof-title" className="m-0 text-center text-22 font-semibold tracking-tight">
+          {PROOF_HEADING}
+        </h2>
+        <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-3">
+          {PROOF_STATS.map((s) => (
+            <li key={s.label} className="glass rounded-card p-5 text-center">
+              <p className="m-0 text-28 font-bold tracking-tight">{s.value}</p>
+              <p className="m-0 mt-1 text-15 text-secondary">{s.label}</p>
             </li>
           ))}
         </ul>
-      </section>
-
-      <section aria-label="Why founders trust us">
         <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-3">
-          {TRUST.map((t) => (
-            <li key={t.title} className="glass flex gap-4 rounded-card p-5">
-              <IconChip name={t.icon} />
-              <div>
-                <h2 className="m-0 text-17 font-semibold">{t.title}</h2>
-                <p className="m-0 mt-1 text-15 text-secondary">{t.text}</p>
-              </div>
+          {TESTIMONIALS.map((t, i) => (
+            <li
+              key={`${String(i)}-${t.name}`}
+              className="glass flex flex-col justify-between gap-4 rounded-card p-6"
+            >
+              <blockquote className="m-0 text-17">“{t.quote}”</blockquote>
+              <p className="m-0 text-15">
+                <span className="font-semibold">{t.name}</span>
+                <span className="text-secondary"> · {t.role}</span>
+              </p>
             </li>
           ))}
         </ul>
       </section>
 
       <section
-        aria-labelledby="sample-title"
-        className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]"
+        id="problem"
+        aria-labelledby="problem-title"
+        className="mx-auto max-w-3xl scroll-mt-24 space-y-6"
       >
-        <div className="space-y-3">
+        <div className="space-y-2 text-center">
           <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">
-            Sample report
+            {PROBLEM.eyebrow}
           </p>
-          <h2 id="sample-title" className="m-0 text-28 font-bold tracking-tight">
-            What a full report looks like
+          <h2 id="problem-title" className="m-0 text-28 font-bold tracking-tight">
+            {PROBLEM.heading}
           </h2>
-          <p className="m-0 text-17 text-secondary">
-            An example. Tap an issue to see why it matters and how to fix it.
-          </p>
         </div>
-        <FullReport
-          host={SAMPLE.host}
-          grade={SAMPLE.grade}
-          score={SAMPLE.score}
-          findings={SAMPLE.findings}
-        />
+        <ul className="glass m-0 list-none space-y-0 rounded-card p-0">
+          {PROBLEM.bullets.map((b) => (
+            <li
+              key={b}
+              className="flex items-center gap-4 border-b border-separator px-5 py-4 text-17 last:border-b-0"
+            >
+              <span aria-hidden="true" className="text-22 text-secondary">
+                “
+              </span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="how" aria-labelledby="how-title" className="scroll-mt-24 space-y-10">
+        <div className="mx-auto max-w-2xl space-y-2 text-center">
+          <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">
+            {SOLUTION.eyebrow}
+          </p>
+          <h2 id="how-title" className="m-0 text-28 font-bold tracking-tight">
+            {SOLUTION.heading}
+          </h2>
+        </div>
+        <ol className="m-0 grid list-none gap-4 p-0 lg:grid-cols-3">
+          {SOLUTION.pairs.map((pair) => (
+            <li key={pair.after} className="glass flex flex-col gap-4 rounded-card p-6">
+              <div>
+                <p className="m-0 text-13 font-semibold uppercase tracking-wider text-secondary">
+                  Today
+                </p>
+                <p className="m-0 mt-1 text-15 text-secondary">{pair.before}</p>
+              </div>
+              <Icon name="arrow" size={20} className="rotate-90 text-accent" />
+              <div>
+                <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">
+                  With Scanner
+                </p>
+                <p className="m-0 mt-1 text-17 font-semibold">{pair.after}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <div className="space-y-3">
+            <h3 className="m-0 text-22 font-semibold tracking-tight">
+              What a full report looks like
+            </h3>
+            <p className="m-0 text-17 text-secondary">
+              An example. Tap an issue to see why it matters and how to fix it.
+            </p>
+          </div>
+          <FullReport
+            host={SAMPLE.host}
+            grade={SAMPLE.grade}
+            score={SAMPLE.score}
+            findings={SAMPLE.findings}
+          />
+        </div>
+      </section>
+
+      <section id="checks" aria-labelledby="checks-title" className="scroll-mt-24 space-y-8">
+        <div className="mx-auto max-w-2xl space-y-2 text-center">
+          <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">Features</p>
+          <h2 id="checks-title" className="m-0 text-28 font-bold tracking-tight">
+            Six things every free scan checks
+          </h2>
+        </div>
+        <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f) => (
+            <li key={f.title} className="glass flex gap-4 rounded-card p-5">
+              <IconChip name={f.icon} />
+              <div className="space-y-1">
+                <h3 className="m-0 text-17 font-semibold">{f.title}</h3>
+                <p className="m-0 text-15 text-secondary">{f.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="pricing" aria-labelledby="pricing-title" className="scroll-mt-24 space-y-8">
+        <div className="mx-auto max-w-2xl space-y-2 text-center">
+          <p className="m-0 text-13 font-semibold uppercase tracking-wider text-accent">Pricing</p>
+          <h2 id="pricing-title" className="m-0 text-28 font-bold tracking-tight">
+            Start free. Upgrade when you need more.
+          </h2>
+        </div>
+        <ul className="m-0 grid list-none items-stretch gap-4 p-0 lg:grid-cols-3">
+          {PLANS.map((plan) => (
+            <li
+              key={plan.name}
+              className={`glass flex flex-col gap-5 rounded-card p-6 ${plan.highlighted ? 'ring-2 ring-accent' : ''}`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="m-0 text-22 font-semibold">{plan.name}</h3>
+                  {plan.highlighted && (
+                    <span className="rounded-full bg-accent px-3 py-1 text-13 font-semibold text-on-accent">
+                      Most popular
+                    </span>
+                  )}
+                </div>
+                <p className="m-0">
+                  <span className="text-34 font-bold tracking-tight">{plan.price}</span>
+                  {plan.period && <span className="text-15 text-secondary"> {plan.period}</span>}
+                </p>
+                <p className="m-0 text-15 text-secondary">{plan.blurb}</p>
+              </div>
+              <ul className="m-0 flex-1 list-none space-y-2 p-0">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-15">
+                    <Icon name="check" size={18} className="mt-0.5 shrink-0 text-accent" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              {plan.available ? (
+                <a
+                  href="#scan"
+                  className="inline-flex min-h-11 items-center justify-center rounded-button bg-accent px-5 text-17 font-semibold text-on-accent hover:opacity-90"
+                >
+                  {plan.cta}
+                </a>
+              ) : (
+                <div className="space-y-2 text-center">
+                  <Button
+                    variant={plan.highlighted ? 'primary' : 'secondary'}
+                    className="w-full"
+                    disabled
+                  >
+                    {plan.cta}
+                  </Button>
+                  <p className="m-0 text-13 text-secondary">Coming soon</p>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section
+        id="faq"
+        aria-labelledby="faq-title"
+        className="mx-auto max-w-3xl scroll-mt-24 space-y-6"
+      >
+        <h2 id="faq-title" className="m-0 text-center text-28 font-bold tracking-tight">
+          Questions founders ask
+        </h2>
+        <div className="glass rounded-card">
+          {FAQ.map((item) => (
+            <details key={item.q} className="group border-b border-separator last:border-b-0">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-17 font-semibold">
+                {item.q}
+                <span
+                  aria-hidden="true"
+                  className="text-secondary transition-transform duration-200 group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <p className="m-0 px-5 pb-5 text-15 text-secondary">{item.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       <section aria-labelledby="cta-title" className="glass rounded-[28px] px-6 py-12 text-center">
         <h2 id="cta-title" className="m-0 text-28 font-bold tracking-tight">
-          Find out in 30 seconds
+          {FINAL_CTA.heading}
         </h2>
-        <p className="mx-auto mt-2 max-w-xl text-17 text-secondary">
-          Free, read-only and in plain English. Nothing on your app is changed.
-        </p>
+        <p className="mx-auto mt-2 max-w-xl text-17 text-secondary">{FINAL_CTA.text}</p>
         <a
           href="#scan"
           className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-button bg-accent px-6 text-17 font-semibold text-on-accent hover:opacity-90"
         >
-          Scan my app now
+          {FINAL_CTA.cta}
           <Icon name="arrow" size={18} />
         </a>
       </section>
