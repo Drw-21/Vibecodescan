@@ -78,11 +78,12 @@ export function supabaseStore(client: ServiceClient): ScanStore {
       const data = await call(client, 'site_for_owner', { p_site_id: siteId, p_user_id: userId });
       return toOwnedSite((data as OwnedSiteRow[] | null)?.[0]);
     },
-    async beginVerifyAttempt(siteId, userId, cooldownSeconds) {
+    async beginVerifyAttempt(siteId, userId, cooldownSeconds, hostSitesPerMinute) {
       const data = await call(client, 'begin_verify_attempt', {
         p_site_id: siteId,
         p_user_id: userId,
         p_cooldown_seconds: cooldownSeconds,
+        p_host_sites_per_minute: hostSitesPerMinute,
       });
       return data === true;
     },

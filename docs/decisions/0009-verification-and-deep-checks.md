@@ -14,9 +14,11 @@ every deep scan.
   - The token must be the whole file, so a catch-all app page can never pass.
   - The stored host must equal what a URL parser reads from the stored URL (ADR 0002).
   - Anything uncertain (timeouts, DNS errors) means "not verified".
-- **verify-site** ("Check now"): signed-in owner only; one check per **host** per 10 seconds
-  across all accounts (`begin_verify_attempt`), so the button cannot be used to hammer someone's
-  server. A successful check is saved only if the site's host and token are still the ones that
+- **verify-site** ("Check now"): signed-in owner only. One check per site per 10 seconds, and at
+  most 5 other accounts' sites checking the same host per minute (`begin_verify_attempt`), so the
+  button cannot be used to hammer someone's server (at most about 30 checks a minute per host).
+  A shared per-host cooldown was rejected: one other account could lock the real owner out
+  (independent review). Locking the owner out now takes 5 accounts checking non-stop. A successful check is saved only if the site's host and token are still the ones that
   were checked (`set_site_verified`), so changing the URL during a slow check cannot leave a
   different host marked verified (independent review, B1). A code
   that expired before it was used (7 days) is replaced with a new one. A failed check does not

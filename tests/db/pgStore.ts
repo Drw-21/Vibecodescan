@@ -60,10 +60,10 @@ export function pgStore(client: pg.Client): ScanStore {
       ]);
       return toOwnedSite(rows[0]);
     },
-    async beginVerifyAttempt(siteId, userId, cooldownSeconds) {
+    async beginVerifyAttempt(siteId, userId, cooldownSeconds, hostSitesPerMinute) {
       const rows = await asService<{ ok: boolean }>(
-        'select public.begin_verify_attempt($1, $2, $3) as ok',
-        [siteId, userId, cooldownSeconds],
+        'select public.begin_verify_attempt($1, $2, $3, $4) as ok',
+        [siteId, userId, cooldownSeconds, hostSitesPerMinute],
       );
       return rows[0]?.ok === true;
     },

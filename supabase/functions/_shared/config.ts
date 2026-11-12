@@ -101,6 +101,8 @@ export const TURNSTILE = {
 export const VERIFY = {
   /** At most one ownership check per site in this window, so checks cannot hammer a server. */
   cooldownSeconds: 10,
+  /** At most this many OTHER accounts' sites may check the same host per minute. */
+  hostSitesPerMinute: 5,
   /** Path of the verification file on the site. */
   filePath: '/.well-known/scanner-verify.txt',
   /** The DNS TXT record (and file) content is this prefix followed by the token. */

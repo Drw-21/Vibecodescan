@@ -90,8 +90,13 @@ export interface ScanStore {
    */
   /** The user's own site, or null if it does not exist or is not theirs. */
   siteForOwner(siteId: string, userId: string): Promise<OwnedSite | null>;
-  /** Records one ownership check; false if the last one was less than the cooldown ago. */
-  beginVerifyAttempt(siteId: string, userId: string, cooldownSeconds: number): Promise<boolean>;
+  /** Records one ownership check; false if too soon for this site or too busy for its host. */
+  beginVerifyAttempt(
+    siteId: string,
+    userId: string,
+    cooldownSeconds: number,
+    hostSitesPerMinute: number,
+  ): Promise<boolean>;
   /**
    * Verify (only if host and token are still the ones that were checked) or unverify a site.
    * False if nothing changed, e.g. the URL changed while the check ran.

@@ -57,7 +57,12 @@ export function verifySiteHandler(deps: VerifySiteDeps): (req: Request) => Promi
       );
     }
 
-    const allowed = await deps.store.beginVerifyAttempt(site.id, userId, VERIFY.cooldownSeconds);
+    const allowed = await deps.store.beginVerifyAttempt(
+      site.id,
+      userId,
+      VERIFY.cooldownSeconds,
+      VERIFY.hostSitesPerMinute,
+    );
     if (!allowed) {
       return problem(429, 'too_soon', 'Please wait a few seconds before checking again.', origin, {
         'retry-after': String(VERIFY.cooldownSeconds),

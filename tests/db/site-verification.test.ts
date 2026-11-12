@@ -52,7 +52,7 @@ describe('begin_verify_attempt', () => {
         (
           await tx.as<{ ok: boolean }>(
             service,
-            'select public.begin_verify_attempt($1, $2, 10) as ok',
+            'select public.begin_verify_attempt($1, $2, 10, 5) as ok',
             [siteA, user],
           )
         ).rows[0]?.ok;
@@ -106,25 +106,45 @@ describe('verification cannot land on a host other than the one checked', () => 
 });
 
 describe('begin_verify_attempt across accounts', () => {
-  it('applies the cooldown per host across all accounts', () =>
+  const addSite = async (tx: Tx, email: string) => {
+    const user = await tx.createUser(email);
+    const site = firstId(
+      await tx.admin<{ id: string }>(
+        `insert into public.sites (user_id, url) values ($1, 'https://a.example.test/') returning id`,
+        [user],
+      ),
+    );
+    return { user, site };
+  };
+  const attempt = async (tx: Tx, site: string, user: string) =>
+    (
+      await tx.as<{ ok: boolean }>(
+        service,
+        'select public.begin_verify_attempt($1, $2, 10, 5) as ok',
+        [site, user],
+      )
+    ).rows[0]?.ok;
+
+  it('one other account checking the same host cannot lock the real owner out', () =>
     inRollback(client, async (tx) => {
-      const { a, b, siteA } = await setup(tx);
-      const siteB = firstId(
-        await tx.admin<{ id: string }>(
-          `insert into public.sites (user_id, url) values ($1, 'https://a.example.test/other') returning id`,
-          [b],
-        ),
+      const { a, siteA } = await setup(tx);
+      const griefer = await addSite(tx, 'griefer@example.test');
+      expect(await attempt(tx, griefer.site, griefer.user)).toBe(true);
+      expect(await attempt(tx, siteA, a)).toBe(true);
+    }));
+
+  it('a host sees at most 5 other accounts checking it per minute', () =>
+    inRollback(client, async (tx) => {
+      const { a, siteA } = await setup(tx);
+      for (let i = 0; i < 5; i++) {
+        const other = await addSite(tx, `other${String(i)}@example.test`);
+        expect(await attempt(tx, other.site, other.user)).toBe(true);
+      }
+      expect(await attempt(tx, siteA, a)).toBe(false);
+      await tx.admin(
+        `update public.sites set last_verify_attempt_at = now() - interval '61 seconds'`,
       );
-      const attempt = async (site: string, user: string) =>
-        (
-          await tx.as<{ ok: boolean }>(
-            service,
-            'select public.begin_verify_attempt($1, $2, 10) as ok',
-            [site, user],
-          )
-        ).rows[0]?.ok;
-      expect(await attempt(siteA, a)).toBe(true);
-      expect(await attempt(siteB, b)).toBe(false);
+      expect(await attempt(tx, siteA, a)).toBe(true);
     }));
 });
 
@@ -203,7 +223,7 @@ describe('access', () => {
       ]) {
         for (const sql of [
           'select * from public.site_for_owner($1, $1)',
-          'select public.begin_verify_attempt($1, $1, 0)',
+          'select public.begin_verify_attempt($1, $1, 0, 5)',
           `select public.set_site_verified($1, true, 'a.example.test', 'x')`,
           'select public.rotate_site_token($1)',
         ]) {

@@ -92,10 +92,20 @@ export class MemoryStore implements ScanStore {
     return Promise.resolve(site?.userId === userId ? site : null);
   }
 
-  beginVerifyAttempt(siteId: string, userId: string, cooldownSeconds: number): Promise<boolean> {
+  beginVerifyAttempt(
+    siteId: string,
+    userId: string,
+    cooldownSeconds: number,
+    hostSitesPerMinute: number,
+  ): Promise<boolean> {
     const site = this.sites.get(siteId);
     if (site?.userId !== userId) return Promise.resolve(false);
     if (Date.now() - site.lastAttempt < cooldownSeconds * 1000) return Promise.resolve(false);
+    const busy = [...this.sites.values()].filter(
+      (other) =>
+        other.id !== siteId && other.host === site.host && Date.now() - other.lastAttempt < 60_000,
+    ).length;
+    if (busy >= hostSitesPerMinute) return Promise.resolve(false);
     site.lastAttempt = Date.now();
     return Promise.resolve(true);
   }

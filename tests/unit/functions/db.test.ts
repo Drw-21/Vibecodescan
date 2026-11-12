@@ -135,7 +135,7 @@ describe('supabaseStore', () => {
       host: 'a.example.com',
       verifiedAt: null,
     });
-    expect(await store.beginVerifyAttempt('s1', 'u1', 10)).toBe(true);
+    expect(await store.beginVerifyAttempt('s1', 'u1', 10, 5)).toBe(true);
     expect(await store.setSiteVerified('s1', true)).toBe(true);
     expect(await store.rotateSiteToken('s1')).toBe(true);
     expect(calls.map((c) => c.url.split('/rpc/')[1])).toEqual([

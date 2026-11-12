@@ -25,27 +25,44 @@ as $$
   where s.id = p_site_id and s.user_id = p_user_id;
 $$;
 
--- Records one ownership check. False if this site, or ANY site with the same host (any
--- account), was checked less than the cooldown ago: checks cannot be used to hammer a server.
-create function public.begin_verify_attempt(p_site_id uuid, p_user_id uuid, p_cooldown_seconds integer)
+-- Records one ownership check. False if
+--   * this site was checked less than p_cooldown_seconds ago, or
+--   * p_host_sites_per_minute OTHER sites with the same host (any account) were checked in the
+--     last minute.
+-- Together: one site checks at most every few seconds, and a host sees a bounded number of
+-- checks however many accounts add it, without one other account being able to lock the real
+-- owner out (it would take p_host_sites_per_minute accounts checking non-stop).
+create function public.begin_verify_attempt(
+  p_site_id uuid,
+  p_user_id uuid,
+  p_cooldown_seconds integer,
+  p_host_sites_per_minute integer
+)
 returns boolean
 language plpgsql
 set search_path = ''
 as $$
 declare
   v_host text;
+  v_last timestamptz;
 begin
-  select s.host into v_host from public.sites s where s.id = p_site_id and s.user_id = p_user_id;
+  select s.host, s.last_verify_attempt_at into v_host, v_last
+  from public.sites s where s.id = p_site_id and s.user_id = p_user_id;
   if v_host is null then
     return false;
   end if;
   -- One decision at a time per host.
   perform pg_advisory_xact_lock(hashtext('verify:' || v_host));
-  if exists (
-    select 1 from public.sites s
+  select s.last_verify_attempt_at into v_last from public.sites s where s.id = p_site_id;
+  if v_last is not null and v_last > now() - make_interval(secs => p_cooldown_seconds) then
+    return false;
+  end if;
+  if (
+    select count(*) from public.sites s
     where s.host = v_host
-      and s.last_verify_attempt_at > now() - make_interval(secs => p_cooldown_seconds)
-  ) then
+      and s.id <> p_site_id
+      and s.last_verify_attempt_at > now() - interval '1 minute'
+  ) >= p_host_sites_per_minute then
     return false;
   end if;
   update public.sites set last_verify_attempt_at = now() where id = p_site_id;
@@ -94,11 +111,11 @@ end;
 $$;
 
 revoke all on function public.site_for_owner(uuid, uuid) from public, anon, authenticated;
-revoke all on function public.begin_verify_attempt(uuid, uuid, integer) from public, anon, authenticated;
+revoke all on function public.begin_verify_attempt(uuid, uuid, integer, integer) from public, anon, authenticated;
 revoke all on function public.set_site_verified(uuid, boolean, text, text) from public, anon, authenticated;
 revoke all on function public.rotate_site_token(uuid) from public, anon, authenticated;
 
 grant execute on function public.site_for_owner(uuid, uuid) to service_role;
-grant execute on function public.begin_verify_attempt(uuid, uuid, integer) to service_role;
+grant execute on function public.begin_verify_attempt(uuid, uuid, integer, integer) to service_role;
 grant execute on function public.set_site_verified(uuid, boolean, text, text) to service_role;
 grant execute on function public.rotate_site_token(uuid) to service_role;
