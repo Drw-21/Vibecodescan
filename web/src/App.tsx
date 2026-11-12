@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScanProgress } from './components/ScanProgress';
+import { SiteFooter, SiteHeader } from './components/SiteChrome';
 import { type FreeSummary, createScan } from './lib/api';
 import { type PublicEnv, readEnv } from './lib/env';
 import { Landing } from './pages/Landing';
@@ -45,11 +46,9 @@ export function App({ env = readEnv(), fetchImpl }: { env?: PublicEnv; fetchImpl
   }
 
   return (
-    <div className="min-h-dvh bg-bg text-ink">
-      <header className="mx-auto flex max-w-2xl items-center px-4 py-4">
-        <span className="text-17 font-semibold">Scanner</span>
-      </header>
-      <main ref={main} className="mx-auto max-w-2xl px-4 pb-16">
+    <div className="flex min-h-dvh flex-col bg-bg text-ink">
+      <SiteHeader showNav={screen.name === 'landing'} />
+      <main ref={main} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16">
         {screen.name === 'landing' && (
           <Landing
             siteKey={env.turnstileSiteKey}
@@ -74,6 +73,7 @@ export function App({ env = readEnv(), fetchImpl }: { env?: PublicEnv; fetchImpl
           />
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }

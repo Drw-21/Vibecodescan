@@ -12,6 +12,7 @@
   --color-field: var(--field-border);
   --color-accent: var(--accent);
   --color-on-accent: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
   --color-critical: var(--critical);
   --color-critical-fill: var(--critical-fill);
   --color-high: var(--high);
@@ -22,6 +23,7 @@
   --color-low-fill: var(--low-fill);
   --color-pass: var(--pass);
   --font-sans: var(--font-sans);
+  --text-52: var(--text-52);
   --text-34: var(--text-34);
   --text-28: var(--text-28);
   --text-22: var(--text-22);
@@ -47,6 +49,11 @@ body {
   background: var(--bg);
   font-size: var(--text-17);
   line-height: 1.47;
+}
+
+/* Headings receive focus only so screen readers announce a new screen; they are not controls. */
+[tabindex='-1']:focus {
+  outline: none;
 }
 
 :focus-visible {

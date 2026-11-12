@@ -42,6 +42,8 @@ const TEXT_PAIRS: [string, string][] = [
   ['accent', 'surface'],
   ['accent', 'bg'],
   ['accent-text', 'accent'],
+  ['accent', 'accent-soft'],
+  ['text', 'accent-soft'],
   ['critical', 'surface'],
   ['critical', 'critical-fill'],
   ['high', 'surface'],
