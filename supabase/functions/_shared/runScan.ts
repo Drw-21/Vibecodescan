@@ -11,12 +11,17 @@ import { safeEvidence } from './scanner/redact.ts';
 import { runChecks } from './scanner/runner.ts';
 import { type ScoreResult, score } from './scanner/score.ts';
 import { type Finding, type SafeFetch, SafeFetchError } from './scanner/types.ts';
-import type { ScanStore, StoredFinding } from './store.ts';
+import type { OwnedSite, ScanStore, StoredFinding } from './store.ts';
 
 export interface RunScanDeps {
   store: ScanStore;
   fetch: SafeFetch;
   log: Logger;
+  /**
+   * Re-checks ownership right before a deep scan (spec: "re-checked before each deep scan").
+   * Without it, deep checks never run.
+   */
+  verifySite?: (site: OwnedSite) => Promise<boolean>;
   maxDurationMs?: number;
 }
 
@@ -48,8 +53,9 @@ export async function runScan(scanId: string, deps: RunScanDeps): Promise<RunSca
     claimed = true;
     log.info('scan started', { scan_id: scanId, kind: scan.kind });
 
+    const verified = await stillVerified(scan, deps);
     const { findings, shadow } = await withDeadline(
-      engine(scan.url, fetch),
+      engine(scan.url, fetch, verified),
       deps.maxDurationMs ?? SCAN.maxDurationMs,
       stop,
     );
@@ -98,10 +104,30 @@ export async function runScan(scanId: string, deps: RunScanDeps): Promise<RunSca
   }
 }
 
-async function engine(url: string, fetch: SafeFetch) {
+/**
+ * True only for a deep scan of a site that is verified AND still passes the ownership check
+ * now. If the check fails, the site loses its verified status and the scan runs passive only.
+ */
+async function stillVerified(
+  scan: { id: string; url: string; kind: string; siteId: string | null; userId: string | null },
+  deps: RunScanDeps,
+): Promise<boolean> {
+  if (scan.kind !== 'deep' || !scan.siteId || !scan.userId || !deps.verifySite) return false;
+  const site = await deps.store.siteForOwner(scan.siteId, scan.userId);
+  if (!site?.verifiedAt) return false;
+  // The scan must target the very host that is proven (the site may have moved since).
+  if (hostOf(scan.url) !== site.host) return false;
+  const ok = await deps.verifySite(site).catch(() => false);
+  if (!ok) {
+    await deps.store.setSiteVerified(site.id, false);
+    deps.log.info('ownership no longer proven; deep checks skipped', { scan_id: scan.id });
+  }
+  return ok;
+}
+
+async function engine(url: string, fetch: SafeFetch, verified: boolean) {
   const collected = await collect(url, { fetch, limits: COLLECT });
-  // Deep checks need ownership re-verified before every deep scan: milestone 6.
-  const ctx = buildContext(collected, { verified: false, fetch });
+  const ctx = buildContext(collected, { verified, fetch });
   return runChecks(ALL_CHECKS, ctx, {
     modes: CHECK_MODES,
     defaultTimeoutMs: RUNNER.defaultCheckTimeoutMs,
@@ -120,6 +146,14 @@ function withDeadline<T>(work: Promise<T>, ms: number, stop: AbortController): P
   return Promise.race([work, deadline]).finally(() => {
     clearTimeout(timer);
   });
+}
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
 }
 
 function toStored(f: Finding): StoredFinding {

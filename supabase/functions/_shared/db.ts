@@ -3,10 +3,12 @@
 import { createClient } from '@supabase/supabase-js';
 import {
   type CreateScanRow,
+  type OwnedSiteRow,
   type ScanRow,
   type ScanStore,
   toClaimedScan,
   toCreateResult,
+  toOwnedSite,
 } from './store.ts';
 
 interface RpcResult {
@@ -51,7 +53,7 @@ export function supabaseStore(client: ServiceClient): ScanStore {
         p_url: input.url,
         p_host: input.host,
         p_user_id: input.userId,
-        p_site_id: null,
+        p_site_id: input.siteId,
         p_kind: input.kind,
         p_client_ip_hash: input.clientIpHash,
         p_daily_limit: input.dailyLimit,
@@ -70,6 +72,32 @@ export function supabaseStore(client: ServiceClient): ScanStore {
         p_grade: grade,
         p_score: score,
       });
+      return data === true;
+    },
+    async siteForOwner(siteId, userId) {
+      const data = await call(client, 'site_for_owner', { p_site_id: siteId, p_user_id: userId });
+      return toOwnedSite((data as OwnedSiteRow[] | null)?.[0]);
+    },
+    async beginVerifyAttempt(siteId, userId, cooldownSeconds, hostSitesPerMinute) {
+      const data = await call(client, 'begin_verify_attempt', {
+        p_site_id: siteId,
+        p_user_id: userId,
+        p_cooldown_seconds: cooldownSeconds,
+        p_host_sites_per_minute: hostSitesPerMinute,
+      });
+      return data === true;
+    },
+    async setSiteVerified(siteId, verified, checked) {
+      const data = await call(client, 'set_site_verified', {
+        p_site_id: siteId,
+        p_verified: verified,
+        p_host: checked?.host ?? null,
+        p_token: checked?.token ?? null,
+      });
+      return data === true;
+    },
+    async rotateSiteToken(siteId) {
+      const data = await call(client, 'rotate_site_token', { p_site_id: siteId });
       return data === true;
     },
     async failScan(scanId, errorCode, onlyIfQueued) {

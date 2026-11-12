@@ -51,7 +51,8 @@ export const CHECK_MODES: Readonly<Record<string, CheckMode>> = {
   https: 'live',
   'cookie-flags': 'live',
   'platform-detect': 'live',
-  // Deep checks (supabase-public-tables, firebase-open-rules) arrive in milestone 6.
+  'supabase-public-tables': 'live',
+  'firebase-open-rules': 'live',
 };
 
 /** Points lost per failed finding (spec: "Scoring and fix prompts"). */
@@ -94,4 +95,16 @@ export const SCAN = {
 export const TURNSTILE = {
   verifyUrl: 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
   timeoutMs: 5_000,
+} as const;
+
+/** Proving ownership of a site (spec: "Scanning only what the user owns"). */
+export const VERIFY = {
+  /** At most one ownership check per site in this window, so checks cannot hammer a server. */
+  cooldownSeconds: 10,
+  /** At most this many OTHER accounts' sites may check the same host per minute. */
+  hostSitesPerMinute: 5,
+  /** Path of the verification file on the site. */
+  filePath: '/.well-known/scanner-verify.txt',
+  /** The DNS TXT record (and file) content is this prefix followed by the token. */
+  recordPrefix: 'scanner-verify=',
 } as const;

@@ -5,6 +5,7 @@ import { SAFE_FETCH, userAgent } from './config.ts';
 import { createResolver } from './resolver.ts';
 import { createSafeFetch } from './scanner/safeFetch.ts';
 import type { SafeFetch } from './scanner/types.ts';
+import type { TxtLookup } from './verify.ts';
 
 declare const EdgeRuntime: { waitUntil(work: Promise<unknown>): void } | undefined;
 
@@ -20,6 +21,17 @@ export const denoResolver = createResolver(
   (host, type, signal) => Deno.resolveDns(host, type, { signal }),
   (error) => error instanceof Deno.errors.NotFound,
 );
+
+/** TXT records for a name, each record's strings joined; "no records" is an empty list. */
+export const txtLookup: TxtLookup = async (host, signal) => {
+  try {
+    const records = await Deno.resolveDns(host, 'TXT', { signal });
+    return records.map((parts) => parts.join(''));
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return [];
+    throw error;
+  }
+};
 
 export function productionSafeFetch(): SafeFetch {
   return createSafeFetch({

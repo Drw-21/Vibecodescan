@@ -32,7 +32,7 @@ deploying to production (leave automatic preview branches off). From then on, ev
 into `main` creates or updates the database tables. The integration acts only on changes that
 land on `main` after it was connected. Check Table Editor for the 6 tables (`profiles`, `sites`,
 `scans`, `findings`, `subscriptions`, `billing_events`) and Edge Functions for `create-scan` and
-`run-scan`; if the functions are missing, step 4 is still needed.
+`run-scan` (and `verify-site` from milestone 6); if the functions are missing, step 4 is still needed.
 
 Otherwise, steps 2 and 4 need a computer with a terminal (Claude Code can do those two for you in
 a later session; it will ask for a Supabase access token through a secure form, and you type the
@@ -51,7 +51,7 @@ are done in web dashboards.
    - `SITE_ORIGIN`: your site's production address exactly, with `https://` and **no** slash at
      the end, e.g. `https://scanner.pages.dev`. Test on this address, not on Cloudflare's preview
      addresses (`<code>.scanner.pages.dev`), which will be refused.
-4. **Deploy the scan functions:** `npx supabase functions deploy create-scan run-scan`.
+4. **Deploy the scan functions:** `npx supabase functions deploy create-scan run-scan verify-site`.
 5. **Put the website on Cloudflare** (Workers & Pages → Create → import the GitHub repository
    `Vibecodescan`; Cloudflare now creates a **Worker** for this, which is fine).
    - The repository's `wrangler.jsonc` tells Cloudflare how to build and serve the site, so the

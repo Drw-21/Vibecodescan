@@ -10,6 +10,8 @@ export interface CreateScanInput {
   url: string;
   host: string;
   userId: string | null;
+  /** A signed-in user's own site, or null. */
+  siteId: string | null;
   kind: ScanKind;
   clientIpHash: string | null;
   dailyLimit: number;
@@ -27,6 +29,39 @@ export interface ClaimedScan {
   kind: ScanKind;
   userId: string | null;
   siteId: string | null;
+}
+
+export interface OwnedSite {
+  id: string;
+  url: string;
+  host: string;
+  verifyToken: string;
+  verifyTokenExpiresAt: string;
+  verifiedAt: string | null;
+}
+
+export interface OwnedSiteRow {
+  id: string;
+  url: string;
+  host: string;
+  verify_token: string;
+  // Text from the Supabase API, Date objects from a direct Postgres connection.
+  verify_token_expires_at: string | Date;
+  verified_at: string | Date | null;
+}
+
+const toIso = (value: string | Date): string => new Date(value).toISOString();
+
+export function toOwnedSite(row: OwnedSiteRow | undefined): OwnedSite | null {
+  if (!row) return null;
+  return {
+    id: row.id,
+    url: row.url,
+    host: row.host,
+    verifyToken: row.verify_token,
+    verifyTokenExpiresAt: toIso(row.verify_token_expires_at),
+    verifiedAt: row.verified_at === null ? null : toIso(row.verified_at),
+  };
 }
 
 export interface StoredFinding {
@@ -53,6 +88,26 @@ export interface ScanStore {
   /**
    * onlyIfQueued: true when this call never claimed the scan (it may be running elsewhere).
    */
+  /** The user's own site, or null if it does not exist or is not theirs. */
+  siteForOwner(siteId: string, userId: string): Promise<OwnedSite | null>;
+  /** Records one ownership check; false if too soon for this site or too busy for its host. */
+  beginVerifyAttempt(
+    siteId: string,
+    userId: string,
+    cooldownSeconds: number,
+    hostSitesPerMinute: number,
+  ): Promise<boolean>;
+  /**
+   * Verify (only if host and token are still the ones that were checked) or unverify a site.
+   * False if nothing changed, e.g. the URL changed while the check ran.
+   */
+  setSiteVerified(
+    siteId: string,
+    verified: boolean,
+    checked?: { host: string; token: string },
+  ): Promise<boolean>;
+  /** New token for an unverified site whose token expired. */
+  rotateSiteToken(siteId: string): Promise<boolean>;
   failScan(scanId: string, errorCode: string, onlyIfQueued: boolean): Promise<boolean>;
 }
 

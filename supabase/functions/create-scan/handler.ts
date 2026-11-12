@@ -9,7 +9,7 @@ import { LIMITS } from '../_shared/config.ts';
 import { corsHeaders, json, problem } from '../_shared/http.ts';
 import type { Logger } from '../_shared/log.ts';
 import type { RunScanResult } from '../_shared/runScan.ts';
-import type { ScanStore } from '../_shared/store.ts';
+import type { ScanKind, ScanStore } from '../_shared/store.ts';
 import { failureMessage, freeSummary } from '../_shared/summary.ts';
 import { CreateScanBody, normaliseScanUrl, readJson } from '../_shared/validate.ts';
 
@@ -75,18 +75,43 @@ function handler(deps: CreateScanDeps): (req: Request) => Promise<Response> {
       return problem(400, 'invalid_body', 'Please send a website address.', origin);
     }
 
-    const target = normaliseScanUrl(body.url);
-    if (!target) {
-      return problem(
-        400,
-        'invalid_url',
-        'That does not look like a public website address, for example myapp.lovable.app.',
-        origin,
-      );
-    }
-
     const userId = await deps.userIdFromRequest(req);
     const ip = deps.clientIp(req);
+
+    let target: { url: string; host: string; siteId: string | null; kind: ScanKind };
+    if ('siteId' in body) {
+      // A signed-in user's own site: deep if it is verified (ownership is re-checked again
+      // right before the deep checks run).
+      if (userId === null) {
+        return problem(401, 'sign_in_required', 'Please sign in to scan your saved apps.', origin);
+      }
+      const site = await deps.store.siteForOwner(body.siteId, userId);
+      if (!site)
+        return problem(
+          404,
+          'site_not_found',
+          'We could not find that app in your account.',
+          origin,
+        );
+      target = {
+        url: site.url,
+        host: site.host,
+        siteId: site.id,
+        kind: site.verifiedAt ? 'deep' : 'passive',
+      };
+    } else {
+      const normalised = normaliseScanUrl(body.url);
+      if (!normalised) {
+        return problem(
+          400,
+          'invalid_url',
+          'That does not look like a public website address, for example myapp.lovable.app.',
+          origin,
+        );
+      }
+      target = { ...normalised, siteId: null, kind: 'passive' };
+    }
+
     if (userId === null) {
       // Without a trusted IP there is no per-visitor limit for an anonymous scan: refuse.
       if (ip === null) {
@@ -97,8 +122,8 @@ function handler(deps: CreateScanDeps): (req: Request) => Promise<Response> {
           origin,
         );
       }
-      const human =
-        body.turnstileToken !== undefined && (await deps.verifyTurnstile(body.turnstileToken, ip));
+      const token = 'turnstileToken' in body ? body.turnstileToken : undefined;
+      const human = token !== undefined && (await deps.verifyTurnstile(token, ip));
       if (!human)
         return problem(
           403,
@@ -112,7 +137,8 @@ function handler(deps: CreateScanDeps): (req: Request) => Promise<Response> {
       url: target.url,
       host: target.host,
       userId,
-      kind: 'passive',
+      siteId: target.siteId,
+      kind: target.kind,
       clientIpHash: ip === null ? null : await deps.hashIp(ip),
       dailyLimit: LIMITS.freeScansPerDay,
       hostCooldownSeconds: LIMITS.hostCooldownSeconds,
@@ -139,7 +165,7 @@ function handler(deps: CreateScanDeps): (req: Request) => Promise<Response> {
 
     if (userId !== null) {
       deps.background(deps.runScan(created.scanId));
-      return json(202, { scanId: created.scanId, status: 'queued' }, origin);
+      return json(202, { scanId: created.scanId, status: 'queued', kind: target.kind }, origin);
     }
 
     const run = await deps.runScan(created.scanId);

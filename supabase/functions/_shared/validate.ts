@@ -3,13 +3,19 @@
 import { z } from 'zod';
 import { LIMITS } from './config.ts';
 
-export const CreateScanBody = z.object({
-  url: z.string().min(1).max(2048),
-  turnstileToken: z.string().min(1).max(2048).optional(),
-});
+export const CreateScanBody = z.union([
+  z.object({
+    url: z.string().min(1).max(2048),
+    turnstileToken: z.string().min(1).max(2048).optional(),
+  }),
+  // A signed-in user rescanning one of their own sites.
+  z.object({ siteId: z.uuid() }),
+]);
 export type CreateScanBody = z.infer<typeof CreateScanBody>;
 
 export const RunScanBody = z.object({ scanId: z.uuid() });
+
+export const VerifySiteBody = z.object({ siteId: z.uuid() });
 
 export interface ScanTarget {
   /** Origin and path only: no query string, fragment, credentials or port. */

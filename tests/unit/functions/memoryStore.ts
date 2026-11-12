@@ -3,6 +3,7 @@
 
 import type {
   ClaimedScan,
+  OwnedSite,
   CreateScanInput,
   CreateScanResult,
   ScanStore,
@@ -23,6 +24,23 @@ export class MemoryStore implements ScanStore {
   inputs: CreateScanInput[] = [];
   /** Force the next createScan outcome. */
   nextOutcome: CreateScanResult | undefined;
+  sites = new Map<string, OwnedSite & { userId: string; lastAttempt: number }>();
+  rotated: string[] = [];
+
+  addSite(userId: string, site: Partial<OwnedSite> & { url: string }): OwnedSite {
+    const full = {
+      id: crypto.randomUUID(),
+      host: new URL(site.url).hostname,
+      verifyToken: 'a'.repeat(64),
+      verifyTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+      verifiedAt: null,
+      ...site,
+      userId,
+      lastAttempt: 0,
+    };
+    this.sites.set(full.id, full);
+    return full;
+  }
 
   createScan(input: CreateScanInput): Promise<CreateScanResult> {
     this.inputs.push(input);
@@ -34,7 +52,7 @@ export class MemoryStore implements ScanStore {
       host: input.host,
       kind: input.kind,
       userId: input.userId,
-      siteId: null,
+      siteId: input.siteId,
       status: 'queued',
       clientIpHash: input.clientIpHash,
       findings: [],
@@ -66,6 +84,52 @@ export class MemoryStore implements ScanStore {
     const allowed = scan?.status === 'queued' || (scan?.status === 'running' && !onlyIfQueued);
     if (!scan || !allowed) return Promise.resolve(false);
     Object.assign(scan, { status: 'failed', errorCode });
+    return Promise.resolve(true);
+  }
+
+  siteForOwner(siteId: string, userId: string): Promise<OwnedSite | null> {
+    const site = this.sites.get(siteId);
+    return Promise.resolve(site?.userId === userId ? site : null);
+  }
+
+  beginVerifyAttempt(
+    siteId: string,
+    userId: string,
+    cooldownSeconds: number,
+    hostSitesPerMinute: number,
+  ): Promise<boolean> {
+    const site = this.sites.get(siteId);
+    if (site?.userId !== userId) return Promise.resolve(false);
+    if (Date.now() - site.lastAttempt < cooldownSeconds * 1000) return Promise.resolve(false);
+    const busy = [...this.sites.values()].filter(
+      (other) =>
+        other.id !== siteId && other.host === site.host && Date.now() - other.lastAttempt < 60_000,
+    ).length;
+    if (busy >= hostSitesPerMinute) return Promise.resolve(false);
+    site.lastAttempt = Date.now();
+    return Promise.resolve(true);
+  }
+
+  setSiteVerified(
+    siteId: string,
+    verified: boolean,
+    checked?: { host: string; token: string },
+  ): Promise<boolean> {
+    const site = this.sites.get(siteId);
+    if (!site) return Promise.resolve(false);
+    if (verified && (site.host !== checked?.host || site.verifyToken !== checked.token)) {
+      return Promise.resolve(false);
+    }
+    site.verifiedAt = verified ? new Date().toISOString() : null;
+    return Promise.resolve(true);
+  }
+
+  rotateSiteToken(siteId: string): Promise<boolean> {
+    const site = this.sites.get(siteId);
+    if (!site || site.verifiedAt) return Promise.resolve(false);
+    site.verifyToken = 'b'.repeat(64);
+    site.verifyTokenExpiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    this.rotated.push(siteId);
     return Promise.resolve(true);
   }
 }
