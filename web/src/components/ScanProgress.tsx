@@ -40,7 +40,7 @@ export function ScanProgress({ host, finished }: { host: string; finished: boole
         </h1>
         <p className="m-0 break-all text-17 text-secondary">{host}</p>
       </header>
-      <div className="space-y-4 rounded-card bg-surface p-5 shadow-card">
+      <div className="space-y-4 rounded-card glass p-5">
         <div className="h-2 overflow-hidden rounded-full bg-accent-soft" aria-hidden="true">
           <div
             className="h-full rounded-full bg-accent transition-[width] duration-300"

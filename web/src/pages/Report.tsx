@@ -34,7 +34,7 @@ export function FreeReport({
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-        <div className="flex flex-col items-center gap-4 rounded-card bg-surface p-6 text-center shadow-card">
+        <div className="glass flex flex-col items-center gap-4 rounded-card p-6 text-center">
           <GradeRing grade={summary.grade} score={summary.score} partial={summary.partial} />
           <p className="m-0 text-17">{summarySentence(summary)}</p>
         </div>
@@ -45,7 +45,7 @@ export function FreeReport({
             aria-label="Issues by severity"
           >
             {shown.map((s) => (
-              <li key={s} className="space-y-2 rounded-card bg-surface p-4 shadow-card">
+              <li key={s} className="space-y-2 rounded-card glass p-4">
                 <SeverityBadge severity={s} />
                 <p className="m-0 text-28 font-bold tracking-tight">
                   {summary.counts[s]}
@@ -56,7 +56,7 @@ export function FreeReport({
           </ul>
 
           {summary.topIssues.length > 0 ? (
-            <div className="rounded-card bg-surface shadow-card">
+            <div className="rounded-card glass">
               <h2 className="m-0 px-5 pt-5 text-17 font-semibold">Top issues</h2>
               <ol className="m-0 list-none p-0">
                 {summary.topIssues.map((title, i) => (
@@ -76,14 +76,14 @@ export function FreeReport({
               </ol>
             </div>
           ) : (
-            <p className="m-0 rounded-card bg-surface p-6 text-center text-17 shadow-card">
+            <p className="glass m-0 rounded-card p-6 text-center text-17">
               Nothing to fix in the checks we ran. Rescan after every big change.
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 rounded-card bg-accent-soft p-5 sm:flex-row sm:items-center">
+      <div className="glass flex flex-col gap-4 rounded-card p-5 sm:flex-row sm:items-center">
         <IconChip name="clipboard" />
         <p className="m-0 flex-1 text-15">
           The full report explains every issue in plain English, with a fix prompt you can paste
@@ -116,13 +116,13 @@ export function FullReport({
   for (const f of findings) counts[f.severity] += 1;
   return (
     <section aria-label={`Report for ${host}`} className="space-y-4">
-      <div className="flex flex-col items-center gap-3 rounded-card bg-surface p-6 text-center shadow-card">
+      <div className="glass flex flex-col items-center gap-3 rounded-card p-6 text-center">
         <p className="m-0 break-all text-17 font-semibold">{host}</p>
         <GradeRing grade={grade} score={score} />
         <p className="m-0 text-17">{summarySentence({ counts, partial: false })}</p>
       </div>
       {SEVERITIES.filter((s) => counts[s] > 0).map((s) => (
-        <div key={s} className="rounded-card bg-surface shadow-card">
+        <div key={s} className="rounded-card glass">
           <h3 className="m-0 px-4 pt-4 text-15 font-semibold text-secondary">
             {SEVERITY_LABEL[s]}
           </h3>

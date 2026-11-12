@@ -14,7 +14,7 @@ export function Logo() {
 
 export function SiteHeader({ showNav }: { showNav: boolean }) {
   return (
-    <header className="border-b border-separator bg-surface/80 backdrop-blur">
+    <header className="glass-bar sticky top-0 z-20">
       <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4">
         <a href="/" className="rounded-lg" aria-label="Scanner, home">
           <Logo />
@@ -49,7 +49,7 @@ export function SiteHeader({ showNav }: { showNav: boolean }) {
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-separator">
+    <footer className="glass-bar border-t border-separator">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 md:flex-row md:items-start md:justify-between">
         <div className="max-w-sm space-y-2">
           <Logo />

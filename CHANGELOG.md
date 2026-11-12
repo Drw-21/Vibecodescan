@@ -2,6 +2,15 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
+## 0.6.2 — Frosted glass and the Geist typeface (unreleased)
+
+- Glass surfaces (translucent, blurred, light edge) for cards, tiles, panels and the call to
+  action; sticky glass header; soft colour glows behind the page so the glass has something to
+  blur. Owner-approved deviation from "no decorative gradients" (ADR 0010).
+- Readability guarded by a test: text on glass keeps WCAG AA over every combination of glows.
+- Solid fallbacks for "reduce transparency" and browsers without background blur.
+- Typeface: Geist and Geist Mono (SIL OFL), self-hosted; system fonts as fallback.
+
 ## 0.6.1 — Visual refresh (unreleased)
 
 - New look from the owner's reference designs: top bar, two-column hero with a report preview,

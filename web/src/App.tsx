@@ -46,7 +46,7 @@ export function App({ env = readEnv(), fetchImpl }: { env?: PublicEnv; fetchImpl
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-bg text-ink">
+    <div className="flex min-h-dvh flex-col text-ink">
       <SiteHeader showNav={screen.name === 'landing'} />
       <main ref={main} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16">
         {screen.name === 'landing' && (

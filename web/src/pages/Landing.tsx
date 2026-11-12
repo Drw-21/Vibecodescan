@@ -95,8 +95,8 @@ const BUILDERS = ['Lovable', 'Bolt', 'Replit', 'v0', 'Cursor'];
 /** A small, static picture of a report beside the form. Decorative: the real sample is below. */
 function HeroPreview() {
   return (
-    <div aria-hidden="true" className="rounded-[28px] bg-accent-soft p-4 sm:p-8">
-      <div className="space-y-5 rounded-card bg-surface p-5 shadow-card">
+    <div aria-hidden="true" className="glass rounded-[28px] p-4 sm:p-8">
+      <div className="space-y-5 rounded-card glass p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="m-0 text-13 text-secondary">Report</p>
@@ -177,11 +177,7 @@ export function Landing({
             Paste your app’s address. In about 30 seconds you get a grade and a plain-English list
             of what to fix.
           </p>
-          <form
-            onSubmit={submit}
-            className="space-y-4 rounded-card bg-surface p-4 text-left shadow-card"
-            noValidate
-          >
+          <form onSubmit={submit} className="glass space-y-4 rounded-card p-4 text-left" noValidate>
             <label htmlFor="url" className="block text-15 font-semibold">
               Your app’s address
             </label>
@@ -262,7 +258,7 @@ export function Landing({
         </div>
         <ol className="m-0 grid list-none gap-4 p-0 md:grid-cols-3">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="space-y-3 rounded-card bg-surface p-6 shadow-card">
+            <li key={step.title} className="space-y-3 rounded-card glass p-6">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-15 font-bold text-on-accent">
                 {i + 1}
               </span>
@@ -288,7 +284,7 @@ export function Landing({
         </div>
         <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {CHECKS.map((c) => (
-            <li key={c.title} className="flex gap-4 rounded-card bg-surface p-5 shadow-card">
+            <li key={c.title} className="flex gap-4 rounded-card glass p-5">
               <IconChip name={c.icon} />
               <div className="space-y-1">
                 <h3 className="m-0 text-17 font-semibold">{c.title}</h3>
@@ -307,7 +303,7 @@ export function Landing({
       <section aria-label="Why founders trust us">
         <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-3">
           {TRUST.map((t) => (
-            <li key={t.title} className="flex gap-4 rounded-card border border-separator p-5">
+            <li key={t.title} className="glass flex gap-4 rounded-card p-5">
               <IconChip name={t.icon} />
               <div>
                 <h2 className="m-0 text-17 font-semibold">{t.title}</h2>
@@ -341,10 +337,7 @@ export function Landing({
         />
       </section>
 
-      <section
-        aria-labelledby="cta-title"
-        className="rounded-[28px] bg-accent-soft px-6 py-12 text-center"
-      >
+      <section aria-labelledby="cta-title" className="glass rounded-[28px] px-6 py-12 text-center">
         <h2 id="cta-title" className="m-0 text-28 font-bold tracking-tight">
           Find out in 30 seconds
         </h2>
