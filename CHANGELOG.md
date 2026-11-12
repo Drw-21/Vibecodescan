@@ -2,6 +2,12 @@
 
 All notable changes. Version numbers follow `MAJOR.MINOR.PATCH`.
 
+## 0.5.1 — Hosting (unreleased)
+
+- `wrangler.jsonc`: the website deploys as a Cloudflare Worker serving `web/dist` (Cloudflare's
+  default for new sites), with build-time values set in the Worker's build settings. ADR 0008.
+- MVP guide updated for the Worker setup.
+
 ## 0.5.0 — Milestone 5: Frontend core (unreleased)
 
 - `web/`: React + Vite + Tailwind with design tokens (Apple type scale, 8-pt grid, light and dark,

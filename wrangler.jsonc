@@ -1,0 +1,14 @@
+// Cloudflare Workers settings for the website (static files only, no server code).
+// Cloudflare reads this on every deploy from GitHub: it builds the site, then serves web/dist.
+// The security headers come from web/public/_headers, which is copied into web/dist.
+{
+  "name": "vibecodescan",
+  "compatibility_date": "2026-11-01",
+  "build": {
+    "command": "npm run web:build",
+  },
+  "assets": {
+    "directory": "./web/dist",
+    "not_found_handling": "single-page-application",
+  },
+}
