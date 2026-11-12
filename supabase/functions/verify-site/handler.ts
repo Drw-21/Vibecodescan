@@ -69,8 +69,23 @@ export function verifySiteHandler(deps: VerifySiteDeps): (req: Request) => Promi
       host: site.host,
       token: site.verifyToken,
     });
+    // Saved only if the address and code are still the ones just checked (the owner may have
+    // changed the address while the check ran).
+    const saved =
+      result.verified &&
+      (await deps.store.setSiteVerified(site.id, true, {
+        host: site.host,
+        token: site.verifyToken,
+      }));
+    if (result.verified && !saved) {
+      return problem(
+        409,
+        'site_changed',
+        'This app’s address changed while we checked. Please check again.',
+        origin,
+      );
+    }
     if (result.verified) {
-      await deps.store.setSiteVerified(site.id, true);
       deps.log.info('site verified', { method: result.method });
       return json(200, { verified: true, method: result.method }, origin);
     }

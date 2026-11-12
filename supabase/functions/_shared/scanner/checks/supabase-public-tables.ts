@@ -35,7 +35,11 @@ const MAX_TABLES = 20;
 const MAX_BYTES = 16 * 1024;
 const TABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
 
-type Answer = 'open' | 'closed' | 'unknown';
+/**
+ * open: rows came back. closed: the table exists and refused us (or showed no rows).
+ * absent: no such table. unknown: no clear answer (overload, invalid key, anything else).
+ */
+type Answer = 'open' | 'closed' | 'absent' | 'unknown';
 
 export const supabasePublicTables: Check = {
   id: 'supabase-public-tables',
@@ -94,15 +98,17 @@ export const supabasePublicTables: Check = {
     });
     if (findings.length > 0) return findings;
 
-    if (answers.includes('unknown')) {
+    // Fail safe: no clear answer, or no table found to test, is not a pass.
+    if (answers.includes('unknown') || !answers.includes('closed')) {
       return [
         {
           checkId: this.id,
           status: 'incomplete',
           severity: 'critical',
           title: 'We could not finish checking your database tables',
-          explanation:
-            'Some of our read-only requests to your Supabase project did not get a clear answer, so we cannot say whether your tables are protected. Rescan to try again.',
+          explanation: answers.includes('unknown')
+            ? 'Some of our read-only requests to your Supabase project did not get a clear answer (for example the key in your app was refused), so we cannot say whether your tables are protected. Rescan to try again.'
+            : 'We could not find any of your database tables to test, so we cannot say whether they are protected.',
           fixKey: this.id,
         },
       ];
@@ -145,8 +151,16 @@ async function listedTables(
 }
 
 function classify(res: SafeResponse): Answer {
-  if (res.status === 429 || res.status >= 500) return 'unknown';
-  if (res.status !== 200) return 'closed';
-  // A row came back: "[{". An empty list "[]" shows nothing, so it is not counted as open.
-  return /^\s*\[\s*\{/.test(res.body) ? 'open' : 'closed';
+  if (res.status === 200) {
+    // A row came back: "[{". An empty list "[]" shows nothing, so it is not counted as open.
+    if (/^\s*\[\s*\{/.test(res.body)) return 'open';
+    return /^\s*\[\s*\]/.test(res.body) ? 'closed' : 'unknown';
+  }
+  if (res.status === 404) return 'absent';
+  // Only Postgres's own "permission denied" (42501) proves the table refused us. Any other
+  // 401/403 (an invalid or revoked key, a gateway error) means we could not really look.
+  if ((res.status === 401 || res.status === 403) && /"42501"|permission denied/i.test(res.body)) {
+    return 'closed';
+  }
+  return 'unknown';
 }

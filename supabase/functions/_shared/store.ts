@@ -92,7 +92,15 @@ export interface ScanStore {
   siteForOwner(siteId: string, userId: string): Promise<OwnedSite | null>;
   /** Records one ownership check; false if the last one was less than the cooldown ago. */
   beginVerifyAttempt(siteId: string, userId: string, cooldownSeconds: number): Promise<boolean>;
-  setSiteVerified(siteId: string, verified: boolean): Promise<boolean>;
+  /**
+   * Verify (only if host and token are still the ones that were checked) or unverify a site.
+   * False if nothing changed, e.g. the URL changed while the check ran.
+   */
+  setSiteVerified(
+    siteId: string,
+    verified: boolean,
+    checked?: { host: string; token: string },
+  ): Promise<boolean>;
   /** New token for an unverified site whose token expired. */
   rotateSiteToken(siteId: string): Promise<boolean>;
   failScan(scanId: string, errorCode: string, onlyIfQueued: boolean): Promise<boolean>;

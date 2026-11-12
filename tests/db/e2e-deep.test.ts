@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { silentLogger } from '../../supabase/functions/_shared/log.ts';
 import { runScan } from '../../supabase/functions/_shared/runScan.ts';
 import { createSafeFetch } from '../../supabase/functions/_shared/scanner/safeFetch.ts';
+import { verifyOwnership } from '../../supabase/functions/_shared/verify.ts';
 import { createScanHandler } from '../../supabase/functions/create-scan/handler.ts';
 import { REFERENCE_SITES } from '../../fixtures/reference-apps/sites.ts';
 import { fakeNet } from '../../fixtures/site.ts';
@@ -24,7 +25,8 @@ afterAll(async () => {
 
 const ORIGIN = 'https://scanner.example.test';
 
-async function scanSavedSite(appId: string, verified: boolean) {
+/** fileInPlace: whether the owner's verification file is still on the site at scan time. */
+async function scanSavedSite(appId: string, verified: boolean, fileInPlace = true) {
   const app = REFERENCE_SITES[appId];
   if (!app) throw new Error(`missing ${appId}`);
   const user = firstId(
@@ -44,7 +46,17 @@ async function scanSavedSite(appId: string, verified: boolean) {
     ).rows,
   );
 
-  const net = fakeNet(app.routes, app.dns);
+  const [{ verify_token: token } = { verify_token: '' }] = (
+    await client.query<{ verify_token: string }>(
+      'select verify_token from public.sites where id = $1',
+      [site],
+    )
+  ).rows;
+  const fileUrl = `${new URL(app.start).origin}/.well-known/scanner-verify.txt`;
+  const routes = fileInPlace
+    ? { ...app.routes, [fileUrl]: { body: `scanner-verify=${token}` } }
+    : app.routes;
+  const net = fakeNet(routes, app.dns);
   const fetch = createSafeFetch({
     resolve: net.resolve,
     transport: net.transport,
@@ -58,9 +70,20 @@ async function scanSavedSite(appId: string, verified: boolean) {
     verifyTurnstile: () => Promise.resolve(false),
     clientIp: () => null,
     hashIp: () => Promise.resolve('e'.repeat(64)),
-    // Ownership is re-checked before deep checks; here the owner's file is in place.
+    // The real ownership re-check, against the (fake) website and no DNS record.
     runScan: (id) =>
-      runScan(id, { store, fetch, log: silentLogger, verifySite: () => Promise.resolve(true) }),
+      runScan(id, {
+        store,
+        fetch,
+        log: silentLogger,
+        verifySite: async (s) =>
+          (
+            await verifyOwnership(
+              { url: s.url, host: s.host, token: s.verifyToken },
+              { fetch, lookupTxt: () => Promise.resolve([]) },
+            )
+          ).verified,
+      }),
     background: (p) => work.push(p),
     allowedOrigin: ORIGIN,
     log: silentLogger,
@@ -90,7 +113,20 @@ async function scanSavedSite(appId: string, verified: boolean) {
   }>('select check_id, status, evidence_redacted from public.findings where scan_id = $1', [
     scanId,
   ]);
-  return { scan: scan.rows[0], findings: findings.rows, requested: net.requested, site, user };
+  const verifiedNow = (
+    await client.query<{ verified_at: string | null }>(
+      'select verified_at from public.sites where id = $1',
+      [site],
+    )
+  ).rows[0]?.verified_at;
+  return {
+    scan: scan.rows[0],
+    findings: findings.rows,
+    requested: net.requested,
+    site,
+    user,
+    verifiedNow,
+  };
 }
 
 describe('end to end: deep checks run only on verified sites', () => {
@@ -120,5 +156,13 @@ describe('end to end: deep checks run only on verified sites', () => {
       ),
     ).toBe(false);
     expect(r.requested.some((u) => u.includes('supabase.co'))).toBe(false);
+  });
+
+  it('a verified site whose proof was removed loses verification; its database is not touched', async () => {
+    const r = await scanSavedSite('ref-insecure-lovable', true, false);
+    expect(r.scan).toMatchObject({ kind: 'deep', status: 'done' });
+    expect(r.findings.some((f) => f.check_id === 'supabase-public-tables')).toBe(false);
+    expect(r.requested.some((u) => u.includes('supabase.co'))).toBe(false);
+    expect(r.verifiedNow).toBeNull();
   });
 });

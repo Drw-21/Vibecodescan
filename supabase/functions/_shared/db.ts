@@ -86,10 +86,12 @@ export function supabaseStore(client: ServiceClient): ScanStore {
       });
       return data === true;
     },
-    async setSiteVerified(siteId, verified) {
+    async setSiteVerified(siteId, verified, checked) {
       const data = await call(client, 'set_site_verified', {
         p_site_id: siteId,
         p_verified: verified,
+        p_host: checked?.host ?? null,
+        p_token: checked?.token ?? null,
       });
       return data === true;
     },

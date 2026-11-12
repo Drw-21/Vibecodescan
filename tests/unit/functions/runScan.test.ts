@@ -166,7 +166,16 @@ describe('runScan', () => {
   it('never runs deep checks for a passive scan, even of a verified site', async () => {
     const site0 = REFERENCE_SITES['ref-open-table'];
     if (!site0) throw new Error('missing site');
-    const { store, run } = setup(site0);
+    const net = fakeNet(site0.routes, site0.dns);
+    const fetch = createSafeFetch({
+      resolve: net.resolve,
+      transport: net.transport,
+      userAgent: 'test',
+    });
+    const store = new MemoryStore();
+    // Ownership would pass: only the scan kind may stop the deep checks here.
+    const run = (id: string) =>
+      runScan(id, { store, fetch, log: silentLogger, verifySite: () => Promise.resolve(true) });
     const site = store.addSite('user-1', {
       url: site0.start,
       verifiedAt: new Date().toISOString(),
@@ -186,6 +195,52 @@ describe('runScan', () => {
     expect(
       store.scans.get(r.scanId)?.findings.some((f) => f.check_id === 'supabase-public-tables'),
     ).toBe(false);
+  });
+
+  it.each([
+    ['the site is not verified', { verifiedAt: null }, (u: string) => u],
+    [
+      'the scan targets a different host than the proven site',
+      {},
+      () => 'https://other.example.test/',
+    ],
+  ] as const)('never runs deep checks when %s', async (_name, siteOverride, scanUrl) => {
+    const site0 = REFERENCE_SITES['ref-open-table'];
+    if (!site0) throw new Error('missing site');
+    const net = fakeNet(site0.routes, site0.dns);
+    const fetch = createSafeFetch({
+      resolve: net.resolve,
+      transport: net.transport,
+      userAgent: 'test',
+    });
+    const store = new MemoryStore();
+    const site = store.addSite('user-1', {
+      url: site0.start,
+      verifiedAt: new Date().toISOString(),
+      ...siteOverride,
+    });
+    const url = scanUrl(site0.start);
+    const r = await store.createScan({
+      url,
+      host: new URL(url).hostname,
+      userId: 'user-1',
+      siteId: site.id,
+      kind: 'deep',
+      clientIpHash: null,
+      dailyLimit: 3,
+      hostCooldownSeconds: 600,
+    });
+    if (r.outcome !== 'ok') throw new Error('not created');
+    await runScan(r.scanId, {
+      store,
+      fetch,
+      log: silentLogger,
+      verifySite: () => Promise.resolve(true),
+    });
+    expect(
+      store.scans.get(r.scanId)?.findings.some((f) => f.check_id === 'supabase-public-tables'),
+    ).toBe(false);
+    expect(net.requested.some((u) => u.includes('supabase.co'))).toBe(false);
   });
 
   it('marks the scan failed if saving the results fails', async () => {

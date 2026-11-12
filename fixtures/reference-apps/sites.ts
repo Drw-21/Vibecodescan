@@ -31,6 +31,15 @@ const OPEN_PROFILES = {
   },
 };
 
+/** The profiles table refuses a logged-out visitor: RLS is on (Postgres error 42501). */
+const PROTECTED_PROFILES = {
+  [`${supabaseUrl()}/rest/v1/profiles?select=*&limit=1`]: {
+    status: 401,
+    body: JSON.stringify({ code: '42501', message: 'permission denied for table profiles' }),
+    headers: { 'content-type': 'application/json' },
+  },
+};
+
 /** Firestore lets anyone read the users collection. */
 const OPEN_FIRESTORE = {
   'https://firestore.googleapis.com/v1/projects/ref-app-123/databases/(default)/documents/users?pageSize=1':
@@ -41,7 +50,11 @@ const OPEN_FIRESTORE = {
 };
 
 export const REFERENCE_SITES: Record<string, Site> = {
-  'ref-clean': app('ref-clean', { head: LOVABLE, bundles: bundle(supabaseClient()) }),
+  'ref-clean': app('ref-clean', {
+    head: LOVABLE,
+    bundles: bundle(supabaseClient()),
+    routes: PROTECTED_PROFILES,
+  }),
   'ref-exposed-key': app('ref-exposed-key', {
     head: LOVABLE,
     bundles: bundle(`${supabaseClient()}const openai=new OpenAI({apiKey:"${fake.openai()}"});`),

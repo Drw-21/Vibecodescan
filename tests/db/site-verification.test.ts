@@ -66,11 +66,81 @@ describe('begin_verify_attempt', () => {
     }));
 });
 
+describe('verification cannot land on a host other than the one checked', () => {
+  it('refuses to verify if the URL (and so host and token) changed while the check ran', () =>
+    inRollback(client, async (tx) => {
+      const { a, siteA } = await setup(tx);
+      const [checked] = await tx.admin<{ host: string; verify_token: string }>(
+        'select host, verify_token from public.sites where id = $1',
+        [siteA],
+      );
+      // During the slow check, the owner points the site at someone else's address.
+      await tx.as(
+        { role: 'authenticated', userId: a },
+        `update public.sites set url = 'https://victim.example.test' where id = $1`,
+        [siteA],
+      );
+      const r = await tx.as<{ ok: boolean }>(
+        service,
+        'select public.set_site_verified($1, true, $2, $3) as ok',
+        [siteA, checked?.host, checked?.verify_token],
+      );
+      expect(r.rows[0]?.ok).toBe(false);
+      const [after] = await tx.admin<{ host: string; verified_at: string | null }>(
+        'select host, verified_at from public.sites where id = $1',
+        [siteA],
+      );
+      expect(after).toEqual({ host: 'victim.example.test', verified_at: null });
+    }));
+
+  it('refuses to verify without the checked host and token', () =>
+    inRollback(client, async (tx) => {
+      const { siteA } = await setup(tx);
+      const r = await tx.as<{ ok: boolean }>(
+        service,
+        'select public.set_site_verified($1, true) as ok',
+        [siteA],
+      );
+      expect(r.rows[0]?.ok).toBe(false);
+    }));
+});
+
+describe('begin_verify_attempt across accounts', () => {
+  it('applies the cooldown per host across all accounts', () =>
+    inRollback(client, async (tx) => {
+      const { a, b, siteA } = await setup(tx);
+      const siteB = firstId(
+        await tx.admin<{ id: string }>(
+          `insert into public.sites (user_id, url) values ($1, 'https://a.example.test/other') returning id`,
+          [b],
+        ),
+      );
+      const attempt = async (site: string, user: string) =>
+        (
+          await tx.as<{ ok: boolean }>(
+            service,
+            'select public.begin_verify_attempt($1, $2, 10) as ok',
+            [site, user],
+          )
+        ).rows[0]?.ok;
+      expect(await attempt(siteA, a)).toBe(true);
+      expect(await attempt(siteB, b)).toBe(false);
+    }));
+});
+
 describe('set_site_verified and rotate_site_token', () => {
   it('marks a site verified and unverified', () =>
     inRollback(client, async (tx) => {
       const { siteA } = await setup(tx);
-      await tx.as(service, 'select public.set_site_verified($1, true)', [siteA]);
+      const [site] = await tx.admin<{ host: string; verify_token: string }>(
+        'select host, verify_token from public.sites where id = $1',
+        [siteA],
+      );
+      await tx.as(service, 'select public.set_site_verified($1, true, $2, $3)', [
+        siteA,
+        site?.host,
+        site?.verify_token,
+      ]);
       const [on] = await tx.admin<{ verified_at: string | null }>(
         'select verified_at from public.sites where id = $1',
         [siteA],
@@ -113,7 +183,7 @@ describe('set_site_verified and rotate_site_token', () => {
         [siteA],
       );
       expect(row?.fresh).toBe(true);
-      await tx.as(service, 'select public.set_site_verified($1, true)', [siteA]);
+      await tx.admin('update public.sites set verified_at = now() where id = $1', [siteA]);
       const again = await tx.as<{ ok: boolean }>(
         service,
         'select public.rotate_site_token($1) as ok',
@@ -134,7 +204,7 @@ describe('access', () => {
         for (const sql of [
           'select * from public.site_for_owner($1, $1)',
           'select public.begin_verify_attempt($1, $1, 0)',
-          'select public.set_site_verified($1, true)',
+          `select public.set_site_verified($1, true, 'a.example.test', 'x')`,
           'select public.rotate_site_token($1)',
         ]) {
           await expect(tx.as(actor, sql, [siteA])).rejects.toMatchObject({ code: '42501' });

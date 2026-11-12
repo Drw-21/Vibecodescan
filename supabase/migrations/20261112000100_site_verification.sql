@@ -25,33 +25,55 @@ as $$
   where s.id = p_site_id and s.user_id = p_user_id;
 $$;
 
--- Records one ownership check, at most once per cooldown per site. False = too soon.
+-- Records one ownership check. False if this site, or ANY site with the same host (any
+-- account), was checked less than the cooldown ago: checks cannot be used to hammer a server.
 create function public.begin_verify_attempt(p_site_id uuid, p_user_id uuid, p_cooldown_seconds integer)
 returns boolean
 language plpgsql
 set search_path = ''
 as $$
+declare
+  v_host text;
 begin
-  update public.sites
-  set last_verify_attempt_at = now()
-  where id = p_site_id
-    and user_id = p_user_id
-    and (last_verify_attempt_at is null
-         or last_verify_attempt_at <= now() - make_interval(secs => p_cooldown_seconds));
-  return found;
+  select s.host into v_host from public.sites s where s.id = p_site_id and s.user_id = p_user_id;
+  if v_host is null then
+    return false;
+  end if;
+  -- One decision at a time per host.
+  perform pg_advisory_xact_lock(hashtext('verify:' || v_host));
+  if exists (
+    select 1 from public.sites s
+    where s.host = v_host
+      and s.last_verify_attempt_at > now() - make_interval(secs => p_cooldown_seconds)
+  ) then
+    return false;
+  end if;
+  update public.sites set last_verify_attempt_at = now() where id = p_site_id;
+  return true;
 end;
 $$;
 
--- Marks a site verified (now) or not verified.
-create function public.set_site_verified(p_site_id uuid, p_verified boolean)
+-- Marks a site verified, but ONLY if its host and token are still the ones that were checked:
+-- if the owner changed the URL while the check ran, the trigger from milestone 1 has already
+-- issued a new token and this does nothing. Unverifying needs no condition.
+create function public.set_site_verified(
+  p_site_id uuid,
+  p_verified boolean,
+  p_host text default null,
+  p_token text default null
+)
 returns boolean
 language plpgsql
 set search_path = ''
 as $$
 begin
-  update public.sites
-  set verified_at = case when p_verified then now() else null end
-  where id = p_site_id;
+  if p_verified then
+    update public.sites
+    set verified_at = now()
+    where id = p_site_id and host = p_host and verify_token = p_token;
+  else
+    update public.sites set verified_at = null where id = p_site_id;
+  end if;
   return found;
 end;
 $$;
@@ -73,10 +95,10 @@ $$;
 
 revoke all on function public.site_for_owner(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.begin_verify_attempt(uuid, uuid, integer) from public, anon, authenticated;
-revoke all on function public.set_site_verified(uuid, boolean) from public, anon, authenticated;
+revoke all on function public.set_site_verified(uuid, boolean, text, text) from public, anon, authenticated;
 revoke all on function public.rotate_site_token(uuid) from public, anon, authenticated;
 
 grant execute on function public.site_for_owner(uuid, uuid) to service_role;
 grant execute on function public.begin_verify_attempt(uuid, uuid, integer) to service_role;
-grant execute on function public.set_site_verified(uuid, boolean) to service_role;
+grant execute on function public.set_site_verified(uuid, boolean, text, text) to service_role;
 grant execute on function public.rotate_site_token(uuid) to service_role;

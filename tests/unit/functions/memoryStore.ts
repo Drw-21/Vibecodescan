@@ -100,9 +100,16 @@ export class MemoryStore implements ScanStore {
     return Promise.resolve(true);
   }
 
-  setSiteVerified(siteId: string, verified: boolean): Promise<boolean> {
+  setSiteVerified(
+    siteId: string,
+    verified: boolean,
+    checked?: { host: string; token: string },
+  ): Promise<boolean> {
     const site = this.sites.get(siteId);
     if (!site) return Promise.resolve(false);
+    if (verified && (site.host !== checked?.host || site.verifyToken !== checked.token)) {
+      return Promise.resolve(false);
+    }
     site.verifiedAt = verified ? new Date().toISOString() : null;
     return Promise.resolve(true);
   }

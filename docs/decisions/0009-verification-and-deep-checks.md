@@ -14,23 +14,36 @@ every deep scan.
   - The token must be the whole file, so a catch-all app page can never pass.
   - The stored host must equal what a URL parser reads from the stored URL (ADR 0002).
   - Anything uncertain (timeouts, DNS errors) means "not verified".
-- **verify-site** ("Check now"): signed-in owner only; one check per site per 10 seconds
-  (`begin_verify_attempt`), so the button cannot be used to hammer someone's server. A code
+- **verify-site** ("Check now"): signed-in owner only; one check per **host** per 10 seconds
+  across all accounts (`begin_verify_attempt`), so the button cannot be used to hammer someone's
+  server. A successful check is saved only if the site's host and token are still the ones that
+  were checked (`set_site_verified`), so changing the URL during a slow check cannot leave a
+  different host marked verified (independent review, B1). A code
   that expired before it was used (7 days) is replaced with a new one. A failed check does not
   remove an earlier verification; the re-check before each deep scan does that.
 - **Deep scans**: `create-scan` accepts `{ siteId }` from the signed-in owner. A verified site
-  gets `kind = 'deep'`. `runScan` then re-checks ownership right before running; if the proof is
-  gone, the site loses its verified status and the scan runs passive checks only. Deep checks
+  gets `kind = 'deep'`. `runScan` then re-checks ownership right before running, and the scan's
+  host must be the proven site's host; if the proof is gone, the site loses its verified status
+  and the scan runs passive checks only. Deep checks
   never run without that re-check (`verifySite` must be supplied).
 - **supabase-public-tables**: only the app's own public anon key, only GET with `select=*&limit=1`,
   only to the app's own Supabase project, at most 20 tables (those the API lists, then common
   names). A table counts as open only when a row comes back; `[]` does not. Only the table name is
-  stored, never row data. 429/5xx answers make the check incomplete.
+  stored, never row data. A table counts as protected only on Postgres's own "permission denied"
+  (`42501`) or an empty result; any other refusal (an invalid key, a gateway error), 429/5xx, or
+  finding no table at all makes the check **incomplete**, never a pass.
 - **firebase-open-rules**: one shallow GET of the Realtime Database root and one `pageSize=1` GET
-  for each of 5 common Firestore collections. Open only when data comes back. Nothing returned is
-  stored.
+  for each of 5 common Firestore collections. Open only when data comes back. Protected only on
+  Firebase's own permission-denied answer or an empty result; anything else, or no database found,
+  is incomplete. Nothing returned is stored. **Owner decision pending:** the spec says "single
+  read-only request"; this uses six small ones (one per database or collection).
 - **Database**: `site_for_owner`, `begin_verify_attempt`, `set_site_verified`, `rotate_site_token`
   (service role only), plus `sites.last_verify_attempt_at`.
+
+- **Known limit:** ownership is proven for the website, not its backend. A verified owner could put
+  someone else's public Supabase or Firebase settings in their page, and the deep checks would read
+  that project (about 21 read-only requests; nothing is stored). The keys involved are public by
+  design, so this adds little an attacker could not do directly.
 
 **Consequences.**
 

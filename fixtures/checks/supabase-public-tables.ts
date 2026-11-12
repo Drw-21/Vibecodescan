@@ -82,8 +82,25 @@ export const cases: CheckCase[] = [
     name: 'false-positive trap: the API description lists odd names that are never requested',
     site: withSupabase({
       [`${REST}/`]: openApi('../../etc/passwd', 'a b'),
+      [`${REST}/profiles?select=*&limit=1`]: denied,
     }),
     expect: 'pass',
+  },
+  {
+    name: 'fail safe: the key in the app is refused everywhere (not proof the tables are safe)',
+    site: withSupabase({
+      [`${supabaseUrl()}/*`]: {
+        status: 401,
+        body: JSON.stringify({ message: 'Invalid API key' }),
+        headers: { 'content-type': 'application/json' },
+      },
+    }),
+    expect: 'incomplete',
+  },
+  {
+    name: 'fail safe: no table could be found to test',
+    site: withSupabase({}),
+    expect: 'incomplete',
   },
   {
     name: 'the app does not use Supabase',

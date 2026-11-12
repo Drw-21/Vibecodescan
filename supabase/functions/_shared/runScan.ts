@@ -109,12 +109,14 @@ export async function runScan(scanId: string, deps: RunScanDeps): Promise<RunSca
  * now. If the check fails, the site loses its verified status and the scan runs passive only.
  */
 async function stillVerified(
-  scan: { id: string; kind: string; siteId: string | null; userId: string | null },
+  scan: { id: string; url: string; kind: string; siteId: string | null; userId: string | null },
   deps: RunScanDeps,
 ): Promise<boolean> {
   if (scan.kind !== 'deep' || !scan.siteId || !scan.userId || !deps.verifySite) return false;
   const site = await deps.store.siteForOwner(scan.siteId, scan.userId);
   if (!site?.verifiedAt) return false;
+  // The scan must target the very host that is proven (the site may have moved since).
+  if (hostOf(scan.url) !== site.host) return false;
   const ok = await deps.verifySite(site).catch(() => false);
   if (!ok) {
     await deps.store.setSiteVerified(site.id, false);
@@ -144,6 +146,14 @@ function withDeadline<T>(work: Promise<T>, ms: number, stop: AbortController): P
   return Promise.race([work, deadline]).finally(() => {
     clearTimeout(timer);
   });
+}
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
 }
 
 function toStored(f: Finding): StoredFinding {

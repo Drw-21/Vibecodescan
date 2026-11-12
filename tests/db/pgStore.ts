@@ -67,10 +67,10 @@ export function pgStore(client: pg.Client): ScanStore {
       );
       return rows[0]?.ok === true;
     },
-    async setSiteVerified(siteId, verified) {
+    async setSiteVerified(siteId, verified, checked) {
       const rows = await asService<{ ok: boolean }>(
-        'select public.set_site_verified($1, $2) as ok',
-        [siteId, verified],
+        'select public.set_site_verified($1, $2, $3, $4) as ok',
+        [siteId, verified, checked?.host ?? null, checked?.token ?? null],
       );
       return rows[0]?.ok === true;
     },

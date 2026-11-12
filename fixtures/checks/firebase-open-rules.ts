@@ -76,6 +76,22 @@ export const cases: CheckCase[] = [
     expect: 'pass',
   },
   {
+    name: 'fail safe: no Firebase database could be found to test',
+    site: withFirebase({}),
+    expect: 'incomplete',
+  },
+  {
+    name: 'fail safe: an unexpected refusal is not proof the data is protected',
+    site: withFirebase({
+      'https://firestore.googleapis.com/*': json(
+        { error: { code: 400, status: 'INVALID_ARGUMENT' } },
+        400,
+      ),
+      [`https://${PROJECT}-default-rtdb.firebaseio.com/*`]: json({ error: 'bad' }, 400),
+    }),
+    expect: 'incomplete',
+  },
+  {
     name: 'the app does not use Firebase',
     site: appSite(),
     expect: 'pass',
