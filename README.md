@@ -10,8 +10,8 @@ plain-English security report with copy-paste fix prompts. Working name; rename 
 
 ## Status
 
-Milestones 1–4 merged; milestone 5 (frontend) in review. To try the MVP, follow
-[`docs/mvp-testing.md`](docs/mvp-testing.md). See `CHANGELOG.md`.
+Milestones 1–5 and 6a merged. To try the MVP, follow
+[`docs/mvp-testing.md`](docs/mvp-testing.md). Giving the project to someone else: [`docs/handoff.md`](docs/handoff.md).
 
 ## Run the checks locally
 

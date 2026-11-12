@@ -26,7 +26,7 @@ Never copy it anywhere, never put it in Cloudflare, and never paste any key into
 ## Steps
 
 **No terminal? Use the Supabase GitHub integration instead of steps 2 and 4.** Supabase →
-Project Settings → Integrations → GitHub → connect `Drw-21/Vibecodescan`, keep the working
+Project Settings → Integrations → GitHub → connect your copy of this repository, keep the working
 directory at the top of the repository, set the production branch to `main`, and turn on
 deploying to production (leave automatic preview branches off). From then on, every change merged
 into `main` creates or updates the database tables. The integration acts only on changes that

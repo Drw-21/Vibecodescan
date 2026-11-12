@@ -62,6 +62,12 @@ describe('landing page', () => {
     for (const a of scanLinks) expect(a.getAttribute('href')).toBe('/scan');
   });
 
+  it('leaves paid plan prices blank until billing exists', () => {
+    for (const plan of PLANS.filter((p) => !p.available)) expect(plan.price).toBe('');
+    const { container } = renderLanding();
+    expect(container.querySelector('#pricing')?.textContent).not.toMatch(/\$(?!0)\d/);
+  });
+
   it('shows every plan, but paid plans cannot be bought until billing exists', () => {
     renderLanding();
     for (const plan of PLANS) expect(screen.getByRole('heading', { name: plan.name })).toBeTruthy();
