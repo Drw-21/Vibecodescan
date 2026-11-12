@@ -52,13 +52,19 @@ are done in web dashboards.
      the end, e.g. `https://scanner.pages.dev`. Test on this address, not on Cloudflare's preview
      addresses (`<code>.scanner.pages.dev`), which will be refused.
 4. **Deploy the scan functions:** `npx supabase functions deploy create-scan run-scan`.
-5. **Put the website on Cloudflare Pages.** Connect this GitHub repository.
-   - Build command: `npm ci && npm run web:build`
-   - Output folder: `web/dist`
-   - Environment variables: `NODE_VERSION` = `22`, `VITE_SUPABASE_URL` (the project URL),
+5. **Put the website on Cloudflare** (Workers & Pages → Create → import the GitHub repository
+   `Vibecodescan`; Cloudflare now creates a **Worker** for this, which is fine).
+   - The repository's `wrangler.jsonc` tells Cloudflare how to build and serve the site, so the
+     build and deploy commands can stay as Cloudflare suggests (`npx wrangler deploy`).
+   - Add the build-time values in the Worker's **Settings → Build → Variables and secrets** (not
+     the "Variables and Secrets" for the running Worker): `VITE_SUPABASE_URL` (the project URL),
      `VITE_SUPABASE_ANON_KEY` (the legacy **anon** key starting with `eyJ`, never the
-     service_role key), `VITE_TURNSTILE_SITE_KEY` (the Turnstile **site** key).
-   - The build stops with a clear message if one of the three `VITE_` values is missing.
+     service_role key), `VITE_TURNSTILE_SITE_KEY` (the Turnstile **site** key). Then **Retry
+     build** (Deployments tab).
+   - The build stops with "Missing environment variables" if one of the three is missing.
+   - Your site's address is shown on the Worker's page, e.g.
+     `https://vibecodescan.<your-account>.workers.dev`. Use that address in step 3
+     (`SITE_ORIGIN`, `SCANNER_BOT_DOMAIN`), for Turnstile and for Cloudflare Access.
 6. **Tell Turnstile your site's domain** (Turnstile → your widget → Hostnames), so the human
    check works there. Then set up Cloudflare Access as described at the top.
 
